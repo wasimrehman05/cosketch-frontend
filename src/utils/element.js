@@ -1,4 +1,4 @@
-import { ARROW_LENGTH, TOOL_ITEMS } from "../constants";
+import { ARROW_LENGTH, TOOL_ITEMS, ELEMENT_ERASE_THRESHOLD } from "../constants";
 import getStroke from "perfect-freehand";
 
 import rough from "roughjs/bin/rough";
@@ -89,7 +89,20 @@ export const createElement = (
 
 export const isPointNearElement = (element, pointX, pointY) => {
   const { x1, y1, x2, y2, type } = element;
+  
+  if (type !== TOOL_ITEMS.TEXT) {
+    const minX = Math.min(x1, x2) - 3;
+    const maxX = Math.max(x1, x2) + 3;
+    const minY = Math.min(y1, y2) - 3;
+    const maxY = Math.max(y1, y2) + 3;
+    
+    if (pointX < minX || pointX > maxX || pointY < minY || pointY > maxY) {
+      return false;
+    }
+  }
+  
   const context = document.getElementById("canvas").getContext("2d");
+  
   switch (type) {
     case TOOL_ITEMS.LINE:
     case TOOL_ITEMS.ARROW:
@@ -103,35 +116,34 @@ export const isPointNearElement = (element, pointX, pointY) => {
         isPointCloseToLine(x1, y2, x1, y1, pointX, pointY)
       );
     case TOOL_ITEMS.BRUSH:
-      return context.isPointInPath(element.path, pointX, pointY);
+      try {
+        return context.isPointInPath(element.path, pointX, pointY);
+      } catch (error) {
+        return false;
+      }
     case TOOL_ITEMS.TEXT:
+      if (!element.text || element.text.trim() === "") return false;
+      
       context.font = `${element.size}px Caveat`;
-      context.fillStyle = element.stroke;
       const textWidth = context.measureText(element.text).width;
       const textHeight = parseInt(element.size);
-      context.restore();
+      
+      const padding = 3;
+      const baselineOffset = textHeight * 0.2;
+      
+      const textLeft = x1 - padding;
+      const textRight = x1 + textWidth + padding;
+      const textTop = y1 - baselineOffset - padding;
+      const textBottom = y1 + textHeight - baselineOffset + padding;
+      
       return (
-        isPointCloseToLine(x1, y1, x1 + textWidth, y1, pointX, pointY) ||
-        isPointCloseToLine(
-          x1 + textWidth,
-          y1,
-          x1 + textWidth,
-          y1 + textHeight,
-          pointX,
-          pointY
-        ) ||
-        isPointCloseToLine(
-          x1 + textWidth,
-          y1 + textHeight,
-          x1,
-          y1 + textHeight,
-          pointX,
-          pointY
-        ) ||
-        isPointCloseToLine(x1, y1 + textHeight, x1, y1, pointX, pointY)
+        pointX >= textLeft && 
+        pointX <= textRight && 
+        pointY >= textTop && 
+        pointY <= textBottom
       );
     default:
-      throw new Error("Type not recognized");
+      return false;
   }
 };
 

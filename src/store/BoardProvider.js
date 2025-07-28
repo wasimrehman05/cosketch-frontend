@@ -1,4 +1,4 @@
-import React, { useCallback, useReducer } from "react";
+import React, { useCallback, useReducer, useRef } from "react";
 
 import boardContext from "./board-context";
 import { BOARD_ACTIONS, TOOL_ACTION_TYPES, TOOL_ITEMS } from "../constants";
@@ -93,17 +93,30 @@ const boardReducer = (state, action) => {
     case BOARD_ACTIONS.ERASE: {
       const { clientX, clientY } = action.payload;
       let newElements = [...state.elements];
-      newElements = newElements.filter((element) => {
-        return !isPointNearElement(element, clientX, clientY);
+      const elementsToRemove = [];
+      
+      newElements.forEach((element, index) => {
+        if (isPointNearElement(element, clientX, clientY)) {
+          elementsToRemove.push(index);
+        }
       });
-      const newHistory = state.history.slice(0, state.index + 1);
-      newHistory.push(newElements);
-      return {
-        ...state,
-        elements: newElements,
-        history: newHistory,
-        index: state.index + 1,
-      };
+      
+      if (elementsToRemove.length > 0) {
+        elementsToRemove.reverse().forEach(index => {
+          newElements.splice(index, 1);
+        });
+        
+        const newHistory = state.history.slice(0, state.index + 1);
+        newHistory.push(newElements);
+        return {
+          ...state,
+          elements: newElements,
+          history: newHistory,
+          index: state.index + 1,
+        };
+      }
+      
+      return state;
     }
     case BOARD_ACTIONS.CHANGE_TEXT: {
       const index = state.elements.length - 1;
@@ -153,6 +166,8 @@ const BoardProvider = ({ children }) => {
     boardReducer,
     initialBoardState
   );
+  
+  const eraserThrottleRef = useRef(null);
 
   const changeToolHandler = (tool) => {
     dispatchBoardAction({
@@ -166,7 +181,16 @@ const BoardProvider = ({ children }) => {
   const boardMouseDownHandler = (event, toolboxState) => {
     if (boardState.toolActionType === TOOL_ACTION_TYPES.WRITING) return;
     const { clientX, clientY } = event;
+    
     if (boardState.activeToolItem === TOOL_ITEMS.ERASER) {
+      dispatchBoardAction({
+        type: BOARD_ACTIONS.ERASE,
+        payload: {
+          clientX,
+          clientY,
+        },
+      });
+      
       dispatchBoardAction({
         type: BOARD_ACTIONS.CHANGE_ACTION_TYPE,
         payload: {
@@ -175,6 +199,7 @@ const BoardProvider = ({ children }) => {
       });
       return;
     }
+    
     dispatchBoardAction({
       type: BOARD_ACTIONS.DRAW_DOWN,
       payload: {
@@ -190,6 +215,7 @@ const BoardProvider = ({ children }) => {
   const boardMouseMoveHandler = (event) => {
     if (boardState.toolActionType === TOOL_ACTION_TYPES.WRITING) return;
     const { clientX, clientY } = event;
+    
     if (boardState.toolActionType === TOOL_ACTION_TYPES.DRAWING) {
       dispatchBoardAction({
         type: BOARD_ACTIONS.DRAW_MOVE,
@@ -199,23 +225,36 @@ const BoardProvider = ({ children }) => {
         },
       });
     } else if (boardState.toolActionType === TOOL_ACTION_TYPES.ERASING) {
-      dispatchBoardAction({
-        type: BOARD_ACTIONS.ERASE,
-        payload: {
-          clientX,
-          clientY,
-        },
-      });
+      if (eraserThrottleRef.current) {
+        clearTimeout(eraserThrottleRef.current);
+      }
+      
+      eraserThrottleRef.current = setTimeout(() => {
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.ERASE,
+          payload: {
+            clientX,
+            clientY,
+          },
+        });
+      }, 16);
     }
   };
 
   const boardMouseUpHandler = () => {
     if (boardState.toolActionType === TOOL_ACTION_TYPES.WRITING) return;
+    
+    if (eraserThrottleRef.current) {
+      clearTimeout(eraserThrottleRef.current);
+      eraserThrottleRef.current = null;
+    }
+    
     if (boardState.toolActionType === TOOL_ACTION_TYPES.DRAWING) {
       dispatchBoardAction({
         type: BOARD_ACTIONS.DRAW_UP,
       });
     }
+    
     dispatchBoardAction({
       type: BOARD_ACTIONS.CHANGE_ACTION_TYPE,
       payload: {
