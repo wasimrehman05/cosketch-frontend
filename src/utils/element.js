@@ -43,9 +43,10 @@ export const createElement = (
       const brushElement = {
         id,
         points: [{ x: x1, y: y1 }],
-        path: new Path2D(getSvgPathFromStroke(getStroke([{ x: x1, y: y1 }]))),
+        path: new Path2D(getSvgPathFromStroke(getStroke([{ x: x1, y: y1 }], { size: size || 5 }))),
         type,
         stroke,
+        size,
       };
       return brushElement;
     }

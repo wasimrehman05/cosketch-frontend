@@ -75,7 +75,7 @@ const boardReducer = (state, action) => {
             { x: clientX, y: clientY },
           ];
           newElements[index].path = new Path2D(
-            getSvgPathFromStroke(getStroke(newElements[index].points))
+            getSvgPathFromStroke(getStroke(newElements[index].points, { size: newElements[index].size || 5 }))
           );
           return {
             ...state,
@@ -210,7 +210,7 @@ const boardReducer = (state, action) => {
               y: point.y + deltaY,
             }));
             updatedElement.path = new Path2D(
-              getSvgPathFromStroke(getStroke(updatedElement.points))
+              getSvgPathFromStroke(getStroke(updatedElement.points, { size: element.size || 5 }))
             );
           } else if ([TOOL_ITEMS.LINE, TOOL_ITEMS.RECTANGLE, TOOL_ITEMS.CIRCLE, TOOL_ITEMS.ARROW].includes(element.type)) {
             updatedElement.roughEle = createElement(

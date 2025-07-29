@@ -99,7 +99,7 @@ const Toolbox = () => {
           <input
             type="range"
             min={activeToolItem === TOOL_ITEMS.TEXT ? 12 : 1}
-            max={activeToolItem === TOOL_ITEMS.TEXT ? 64 : 10}
+            max={activeToolItem === TOOL_ITEMS.TEXT ? 64 : (activeToolItem === TOOL_ITEMS.BRUSH ? 15 : 10)}
             step={1}
             value={size}
             onChange={(event) => changeSize(activeToolItem, event.target.value)}

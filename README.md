@@ -34,7 +34,8 @@
 ## 🚀 How to run it
 
 ```bash
-git clone 
+git clone https://github.com/wasimrehman05/whiteboard.git
+cd whiteboard
 npm install
 npm start
 ```
@@ -108,11 +109,13 @@ whiteboard-tutorial/
 
 ## 🚧 What I might add later
 
-- Different layers for organizing drawings
-- More shape options
-- Better phone/tablet support
-- Save and load your drawings
-- Let multiple people draw together
+Here are some cool features I'm thinking about adding when I have more time:
+- **Layers system** - Organize drawings into different layers for better control
+- **More shapes** - Add triangles, stars, polygons, and other geometric shapes  
+- **Mobile optimization** - Make it work smoothly on phones and tablets
+- **Save/load functionality** - Let users save their drawings and load them later
+- **Real-time collaboration** - Multiple people drawing together at the same time
+- **Element rotation** - Rotate shapes, text, and other elements to any angle
 
 ## Built with ❤️ using
 
