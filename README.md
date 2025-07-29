@@ -109,7 +109,7 @@ whiteboard-tutorial/
 
 ## 🚧 What I might add later
 
-Here are some cool features I'm thinking about adding when I have more time:
+> Here are some cool features I'm thinking about adding when I have more time:
 - **Layers system** - Organize drawings into different layers for better control
 - **More shapes** - Add triangles, stars, polygons, and other geometric shapes  
 - **Mobile optimization** - Make it work smoothly on phones and tablets
