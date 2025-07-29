@@ -16,7 +16,6 @@ function Board() {
     activeToolItem,
     selectedElements,
     selectionArea,
-    clipboard,
     boardMouseDownHandler,
     boardMouseMoveHandler,
     boardMouseUpHandler,

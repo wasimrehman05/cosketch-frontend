@@ -1,4 +1,4 @@
-import { ARROW_LENGTH, TOOL_ITEMS, ELEMENT_ERASE_THRESHOLD } from "../constants";
+import { ARROW_LENGTH, TOOL_ITEMS } from "../constants";
 import getStroke from "perfect-freehand";
 
 import rough from "roughjs/bin/rough";
@@ -173,7 +173,6 @@ export const isPointNearSelectedElement = (element, pointX, pointY) => {
   }
   
   if (type === TOOL_ITEMS.BRUSH && element.points) {
-    const context = document.getElementById("canvas").getContext("2d");
     try {
       const tempCanvas = document.createElement('canvas');
       const tempContext = tempCanvas.getContext('2d');
