@@ -5,8 +5,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-14+-339933?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 
-
-> A React-based whiteboard application I built to learn more about canvas manipulation and complex state management. Started as a simple drawing app but ended up with a lot more features than I initially planned.
+> A fully-featured digital whiteboard built with React and HTML5 Canvas. Draw, write, create shapes, and collaborate with multiple drawing tools. Features include brush strokes, shapes, text, selection, copy/paste, undo/redo, and more. Perfect for sketching ideas, creating diagrams, or just doodling around.
 
 ## 📸 Demo
 
