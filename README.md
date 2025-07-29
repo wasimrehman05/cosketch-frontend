@@ -1,70 +1,137 @@
-# Getting Started with Create React App
+# 🎨 Digital Whiteboard App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[![Version](https://img.shields.io/badge/Version-1.1.0-blue?style=for-the-badge)](https://github.com/wasimrehman05/whiteboard-tutorial)
+[![React](https://img.shields.io/badge/React-18.2.0-61dafb?style=for-the-badge&logo=react)](https://reactjs.org/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Node](https://img.shields.io/badge/Node-14+-339933?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 
-## Available Scripts
 
-In the project directory, you can run:
+> A React-based whiteboard application I built to learn more about canvas manipulation and complex state management. Started as a simple drawing app but ended up with a lot more features than I initially planned.
 
-### `npm start`
+## 📸 Demo
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+![Whiteboard Application](./screenshots/whiteboard-demo.png)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## ✨ What it does
 
-### `npm test`
+> This is a fully functional digital whiteboard with most of the features you'd expect:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**Drawing tools:**
+- Brush for freehand drawing
+- Basic shapes (rectangles, circles, lines, arrows)
+- Text tool
+- Eraser
+- Selection tool for moving stuff around
 
-### `npm run build`
+**Features:**
+- Copy/paste functionality (Ctrl+C/V)
+- Undo/redo that actually works
+- Drag and drop to move selected elements
+- Download your drawing as an image
+- Custom cursors for each tool
+- Pretty smooth performance even with lots of elements
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🚀 How to run it
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+git clone 
+npm install
+npm start
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Then go to http://localhost:3000
 
-### `npm run eject`
+## ⚙️ How it works
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+> The app uses HTML5 Canvas for drawing, with React handling the UI and state management. I used a few libraries to make life easier:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **RoughJS** - gives shapes that hand-drawn look
+- **perfect-freehand** - makes brush strokes look natural
+- **Tailwind CSS** - for styling without writing much CSS
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## ⌨️ Keyboard shortcuts
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- `Ctrl/Cmd + Z` - Undo
+- `Ctrl/Cmd + Y` - Redo  
+- `Ctrl/Cmd + C` - Copy selected elements
+- `Ctrl/Cmd + V` - Paste
+- `Delete` - Remove selected elements
 
-## Learn More
+## 🛠️ Technical details
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+> The architecture is pretty straightforward:
+- React Context for state management
+- Canvas API for actual drawing
+- Custom hooks for mouse/keyboard events
+- Reducer pattern for complex state updates
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+**Project structure:**
+```
+whiteboard-tutorial/
+├── public/
+│   ├── index.html          # Main HTML template
+│   └── favicon.ico         # App icon
+├── src/
+│   ├── components/
+│   │   ├── Board/
+│   │   │   ├── index.js            # Main canvas component
+│   │   │   └── index.module.css    # Canvas styling + cursors
+│   │   ├── Toolbar/
+│   │   │   ├── index.js            # Tool selection buttons
+│   │   │   └── index.module.css    # Toolbar styling
+│   │   └── Toolbox/
+│   │       ├── index.js            # Tool customization panel
+│   │       └── index.module.css    # Toolbox styling
+│   ├── store/
+│   │   ├── BoardProvider.js        # Main drawing logic & state
+│   │   ├── board-context.js        # Drawing context definition
+│   │   ├── ToolboxProvider.js      # Tool settings state
+│   │   └── toolbox-context.js      # Toolbox context definition
+│   ├── utils/
+│   │   ├── element.js              # Drawing elements creation & selection
+│   │   └── math.js                 # Geometry calculations
+│   ├── constants.js                # Tool types, actions, colors
+│   ├── index.js                    # App entry point
+│   ├── index.css                   # Global styles
+│   └── App.js                      # Main app component
+├── screenshots/                    # Demo images for README
+├── package.json                    # Dependencies & scripts
+├── tailwind.config.js              # Tailwind CSS configuration
+└── README.md                       # This file
+```
 
-### Code Splitting
+**Key files explained:**
+- `BoardProvider.js` - Contains all the drawing logic, history management, and state
+- `element.js` - Functions for creating, moving, and detecting elements
+- `Board/index.js` - Renders the canvas and handles mouse/keyboard events
+- `constants.js` - Defines all tool types, colors, and action constants
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 🚧 What I might add later
 
-### Analyzing the Bundle Size
+- Different layers for organizing drawings
+- More shape options
+- Better phone/tablet support
+- Save and load your drawings
+- Let multiple people draw together
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Built with ❤️ using
 
-### Making a Progressive Web App
+- React 18
+- HTML5 Canvas
+- RoughJS
+- perfect-freehand
+- Tailwind CSS
+- Create React App
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 📄 License
 
-### Advanced Configuration
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 👨‍💻 Author
 
-### Deployment
+**Wasim Rehman**
+- GitHub: [@wasimrehman05](https://github.com/wasimrehman05)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+⭐ **Star this repository if you found it helpful!** 

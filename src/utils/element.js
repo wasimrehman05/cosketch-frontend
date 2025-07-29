@@ -147,6 +147,140 @@ export const isPointNearElement = (element, pointX, pointY) => {
   }
 };
 
+export const isPointNearSelectedElement = (element, pointX, pointY) => {
+  const { x1, y1, x2, y2, type } = element;
+  
+  const elementLeft = Math.min(x1, x2);
+  const elementRight = Math.max(x1, x2);
+  const elementTop = Math.min(y1, y2);
+  const elementBottom = Math.max(y1, y2);
+  
+  const padding = 15;
+  
+  if (type === TOOL_ITEMS.TEXT && element.text) {
+    const context = document.getElementById("canvas").getContext("2d");
+    context.font = `${element.size}px Caveat`;
+    const textWidth = context.measureText(element.text).width;
+    const textHeight = parseInt(element.size);
+    
+    return (
+      pointX >= x1 - padding && 
+      pointX <= x1 + textWidth + padding && 
+      pointY >= y1 - padding && 
+      pointY <= y1 + textHeight + padding
+    );
+  }
+  
+  if (type === TOOL_ITEMS.BRUSH && element.points) {
+    const context = document.getElementById("canvas").getContext("2d");
+    try {
+      const tempCanvas = document.createElement('canvas');
+      const tempContext = tempCanvas.getContext('2d');
+      tempContext.lineWidth = 10;
+      tempContext.strokeStyle = 'black';
+      const thickPath = new Path2D();
+      
+      if (element.points.length > 1) {
+        thickPath.moveTo(element.points[0].x, element.points[0].y);
+        for (let i = 1; i < element.points.length; i++) {
+          thickPath.lineTo(element.points[i].x, element.points[i].y);
+        }
+      }
+      
+      return tempContext.isPointInStroke(thickPath, pointX, pointY);
+    } catch (error) {
+      return element.points.some(point => 
+        Math.abs(point.x - pointX) <= padding && 
+        Math.abs(point.y - pointY) <= padding
+      );
+    }
+  }
+  
+  return (
+    pointX >= elementLeft - padding && 
+    pointX <= elementRight + padding && 
+    pointY >= elementTop - padding && 
+    pointY <= elementBottom + padding
+  );
+};
+
+export const isElementInSelection = (element, selectionArea) => {
+  const { startX, startY, endX, endY } = selectionArea;
+  const { x1, y1, x2, y2, type } = element;
+  
+  const selectionLeft = Math.min(startX, endX);
+  const selectionRight = Math.max(startX, endX);
+  const selectionTop = Math.min(startY, endY);
+  const selectionBottom = Math.max(startY, endY);
+  
+  const selectionWidth = selectionRight - selectionLeft;
+  const selectionHeight = selectionBottom - selectionTop;
+  const isSmallSelection = selectionWidth < 20 && selectionHeight < 20;
+  
+  const elementLeft = Math.min(x1, x2);
+  const elementRight = Math.max(x1, x2);
+  const elementTop = Math.min(y1, y2);
+  const elementBottom = Math.max(y1, y2);
+  
+  if (type === TOOL_ITEMS.TEXT && element.text) {
+    const context = document.getElementById("canvas").getContext("2d");
+    context.font = `${element.size}px Caveat`;
+    const textWidth = context.measureText(element.text).width;
+    const textHeight = parseInt(element.size);
+    
+    const textLeft = x1;
+    const textRight = x1 + textWidth;
+    const textTop = y1;
+    const textBottom = y1 + textHeight;
+    
+    if (isSmallSelection) {
+      return (
+        selectionLeft < textRight &&
+        selectionRight > textLeft &&
+        selectionTop < textBottom &&
+        selectionBottom > textTop
+      );
+    }
+    
+    return (
+      textLeft >= selectionLeft &&
+      textRight <= selectionRight &&
+      textTop >= selectionTop &&
+      textBottom <= selectionBottom
+    );
+  }
+  
+  if (type === TOOL_ITEMS.BRUSH && element.points) {
+    if (isSmallSelection) {
+      return element.points.some(point =>
+        point.x >= selectionLeft && point.x <= selectionRight &&
+        point.y >= selectionTop && point.y <= selectionBottom
+      );
+    }
+    
+    return element.points.every(point =>
+      point.x >= selectionLeft && point.x <= selectionRight &&
+      point.y >= selectionTop && point.y <= selectionBottom
+    );
+  }
+  
+  if (isSmallSelection) {
+    return (
+      elementLeft < selectionRight &&
+      elementRight > selectionLeft &&
+      elementTop < selectionBottom &&
+      elementBottom > selectionTop
+    );
+  }
+  
+  return (
+    elementLeft >= selectionLeft &&
+    elementRight <= selectionRight &&
+    elementTop >= selectionTop &&
+    elementBottom <= selectionBottom
+  );
+};
+
 export const getSvgPathFromStroke = (stroke) => {
   if (!stroke.length) return "";
 

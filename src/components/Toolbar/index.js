@@ -12,6 +12,7 @@ import {
   FaRedoAlt,
   FaFont,
   FaDownload,
+  FaMousePointer,
 } from "react-icons/fa";
 import { LuRectangleHorizontal } from "react-icons/lu";
 import { TOOL_ITEMS } from "../../constants";
@@ -32,6 +33,14 @@ const Toolbar = () => {
 
   return (
     <div className={classes.container}>
+      <div
+        className={cx(classes.toolItem, {
+          [classes.active]: activeToolItem === TOOL_ITEMS.SELECTION,
+        })}
+        onClick={() => changeToolHandler(TOOL_ITEMS.SELECTION)}
+      >
+        <FaMousePointer />
+      </div>
       <div
         className={cx(classes.toolItem, {
           [classes.active]: activeToolItem === TOOL_ITEMS.BRUSH,

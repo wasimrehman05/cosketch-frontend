@@ -14,18 +14,30 @@ function Board() {
     elements,
     toolActionType,
     activeToolItem,
+    selectedElements,
+    selectionArea,
+    clipboard,
     boardMouseDownHandler,
     boardMouseMoveHandler,
     boardMouseUpHandler,
     textAreaBlurHandler,
     undo,
     redo,
+    deleteSelected,
+    copySelected,
+    paste,
   } = useContext(boardContext);
   const { toolboxState } = useContext(toolboxContext);
 
   // Get cursor class based on active tool
   const getCursorClass = () => {
+    if (toolActionType === TOOL_ACTION_TYPES.MOVING) {
+      return classes.movingCursor;
+    }
+    
     switch (activeToolItem) {
+      case TOOL_ITEMS.SELECTION:
+        return classes.selectionCursor;
       case TOOL_ITEMS.BRUSH:
         return classes.brushCursor;
       case TOOL_ITEMS.ERASER:
@@ -53,10 +65,27 @@ function Board() {
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (event.ctrlKey && event.key === "z") {
-        undo();
-      } else if (event.ctrlKey && event.key === "y") {
-        redo();
+      if (toolActionType === TOOL_ACTION_TYPES.WRITING) {
+        return;
+      }
+      
+      if (event.ctrlKey || event.metaKey) {
+        if (event.key === "z") {
+          event.preventDefault();
+          undo();
+        } else if (event.key === "y") {
+          event.preventDefault();
+          redo();
+        } else if (event.key === "c") {
+          event.preventDefault();
+          copySelected();
+        } else if (event.key === "v") {
+          event.preventDefault();
+          paste();
+        }
+      } else if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteSelected();
       }
     }
 
@@ -65,7 +94,7 @@ function Board() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [undo, redo]);
+  }, [undo, redo, deleteSelected, copySelected, paste, toolActionType]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -75,16 +104,36 @@ function Board() {
     const roughCanvas = rough.canvas(canvas);
 
     elements.forEach((element) => {
+      const isSelected = selectedElements.includes(element.id);
+      
       switch (element.type) {
         case TOOL_ITEMS.LINE:
         case TOOL_ITEMS.RECTANGLE:
         case TOOL_ITEMS.CIRCLE:
         case TOOL_ITEMS.ARROW:
           roughCanvas.draw(element.roughEle);
+          if (isSelected) {
+            context.strokeStyle = "#007bff";
+            context.lineWidth = 2;
+            context.setLineDash([5, 5]);
+            const minX = Math.min(element.x1, element.x2) - 5;
+            const minY = Math.min(element.y1, element.y2) - 5;
+            const width = Math.abs(element.x2 - element.x1) + 10;
+            const height = Math.abs(element.y2 - element.y1) + 10;
+            context.strokeRect(minX, minY, width, height);
+            context.setLineDash([]);
+          }
           break;
         case TOOL_ITEMS.BRUSH:
           context.fillStyle = element.stroke;
           context.fill(element.path);
+          if (isSelected) {
+            context.strokeStyle = "#007bff";
+            context.lineWidth = 2;
+            context.setLineDash([5, 5]);
+            context.stroke(element.path);
+            context.setLineDash([]);
+          }
           context.restore();
           break;
         case TOOL_ITEMS.TEXT:
@@ -92,6 +141,15 @@ function Board() {
           context.font = `${element.size}px Caveat`;
           context.fillStyle = element.stroke;
           context.fillText(element.text, element.x1, element.y1);
+          if (isSelected) {
+            const textWidth = context.measureText(element.text).width;
+            const textHeight = parseInt(element.size);
+            context.strokeStyle = "#007bff";
+            context.lineWidth = 2;
+            context.setLineDash([5, 5]);
+            context.strokeRect(element.x1 - 2, element.y1 - 2, textWidth + 4, textHeight + 4);
+            context.setLineDash([]);
+          }
           context.restore();
           break;
         default:
@@ -99,10 +157,26 @@ function Board() {
       }
     });
 
+    if (selectionArea && toolActionType === TOOL_ACTION_TYPES.SELECTING) {
+      context.strokeStyle = "#007bff";
+      context.lineWidth = 1;
+      context.setLineDash([5, 5]);
+      context.fillStyle = "rgba(0, 123, 255, 0.1)";
+      
+      const x = Math.min(selectionArea.startX, selectionArea.endX);
+      const y = Math.min(selectionArea.startY, selectionArea.endY);
+      const width = Math.abs(selectionArea.endX - selectionArea.startX);
+      const height = Math.abs(selectionArea.endY - selectionArea.startY);
+      
+      context.fillRect(x, y, width, height);
+      context.strokeRect(x, y, width, height);
+      context.setLineDash([]);
+    }
+
     return () => {
       context.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [elements]);
+  }, [elements, selectedElements, selectionArea, toolActionType]);
 
   useEffect(() => {
     const textarea = textAreaRef.current;
