@@ -377,17 +377,21 @@ const BoardProvider = ({ children }) => {
   
   const eraserThrottleRef = useRef(null);
 
-  const changeToolHandler = (tool) => {
+  const changeToolHandler = useCallback((tool) => {
     dispatchBoardAction({
       type: BOARD_ACTIONS.CHANGE_TOOL,
       payload: {
         tool,
       },
     });
-  };
+  }, []);
 
   const boardMouseDownHandler = (event, toolboxState) => {
     if (boardState.toolActionType === TOOL_ACTION_TYPES.WRITING) return;
+    
+    // If tool is NONE, prevent all editing actions - view only mode
+    if (boardState.activeToolItem === TOOL_ITEMS.NONE) return;
+    
     const { clientX, clientY } = event;
     
     if (boardState.activeToolItem === TOOL_ITEMS.SELECTION) {
@@ -465,6 +469,10 @@ const BoardProvider = ({ children }) => {
 
   const boardMouseMoveHandler = (event) => {
     if (boardState.toolActionType === TOOL_ACTION_TYPES.WRITING) return;
+    
+    // If tool is NONE, prevent all editing actions - view only mode
+    if (boardState.activeToolItem === TOOL_ITEMS.NONE) return;
+    
     const { clientX, clientY } = event;
     
     if (boardState.toolActionType === TOOL_ACTION_TYPES.SELECTING) {
@@ -515,6 +523,9 @@ const BoardProvider = ({ children }) => {
 
   const boardMouseUpHandler = () => {
     if (boardState.toolActionType === TOOL_ACTION_TYPES.WRITING) return;
+    
+    // If tool is NONE, prevent all editing actions - view only mode
+    if (boardState.activeToolItem === TOOL_ITEMS.NONE) return;
     
     if (eraserThrottleRef.current) {
       clearTimeout(eraserThrottleRef.current);

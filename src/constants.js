@@ -1,4 +1,5 @@
 export const TOOL_ITEMS = {
+  NONE: "NONE",
   BRUSH: "BRUSH",
   LINE: "LINE",
   RECTANGLE: "RECTANGLE",

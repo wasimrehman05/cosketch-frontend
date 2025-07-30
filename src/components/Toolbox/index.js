@@ -24,7 +24,12 @@ const Toolbox = () => {
 
   return (
     <div className={classes.container}>
-      {STROKE_TOOL_TYPES.includes(activeToolItem) && (
+      {activeToolItem === TOOL_ITEMS.NONE && (
+        <div className={classes.disabledMessage}>
+          View Only Mode - No editing available
+        </div>
+      )}
+      {STROKE_TOOL_TYPES.includes(activeToolItem) && activeToolItem !== TOOL_ITEMS.NONE && (
         <div className={classes.selectOptionContainer}>
           <div className={classes.toolBoxLabel}>Stroke Color</div>
           <div className={classes.colorsContainer}>
@@ -51,7 +56,7 @@ const Toolbox = () => {
           </div>
         </div>
       )}
-      {FILL_TOOL_TYPES.includes(activeToolItem) && (
+      {FILL_TOOL_TYPES.includes(activeToolItem) && activeToolItem !== TOOL_ITEMS.NONE && (
         <div className={classes.selectOptionContainer}>
           <div className={classes.toolBoxLabel}>Fill Color</div>
           <div className={classes.colorsContainer}>
@@ -91,7 +96,7 @@ const Toolbox = () => {
           </div>
         </div>
       )}
-      {SIZE_TOOL_TYPES.includes(activeToolItem) && (
+      {SIZE_TOOL_TYPES.includes(activeToolItem) && activeToolItem !== TOOL_ITEMS.NONE && (
         <div className={classes.selectOptionContainer}>
           <div className={classes.toolBoxLabel}>
             {activeToolItem === TOOL_ITEMS.TEXT ? "Font Size" : "Brush Size"}

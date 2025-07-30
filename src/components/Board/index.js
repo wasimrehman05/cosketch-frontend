@@ -35,6 +35,8 @@ function Board() {
     }
     
     switch (activeToolItem) {
+      case TOOL_ITEMS.NONE:
+        return ""; // Default cursor for view-only mode
       case TOOL_ITEMS.SELECTION:
         return classes.selectionCursor;
       case TOOL_ITEMS.BRUSH:
@@ -64,7 +66,24 @@ function Board() {
 
   useEffect(() => {
     function handleKeyDown(event) {
+      // Check if the user is typing in an input field
+      const activeElement = document.activeElement;
+      const isTypingInInput = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.contentEditable === 'true'
+      );
+      
+      if (isTypingInInput) {
+        return; // Don't interfere with input field typing
+      }
+      
       if (toolActionType === TOOL_ACTION_TYPES.WRITING) {
+        return;
+      }
+      
+      // If tool is NONE, prevent all keyboard shortcuts - view only mode
+      if (activeToolItem === TOOL_ITEMS.NONE) {
         return;
       }
       
@@ -93,7 +112,7 @@ function Board() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [undo, redo, deleteSelected, copySelected, paste, toolActionType]);
+  }, [undo, redo, deleteSelected, copySelected, paste, toolActionType, activeToolItem]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;

@@ -47,3 +47,7 @@
 .colorPicker {
   @apply mr-5 w-10 h-10 rounded border-2 border-neutral-400;
 }
+
+.disabledMessage {
+  @apply text-gray-500 text-center p-4 italic;
+}
