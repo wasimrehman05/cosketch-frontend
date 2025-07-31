@@ -2,8 +2,11 @@ import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 import rough from "roughjs";
 import cx from "classnames";
 import boardContext from "../../store/board-context";
-import { TOOL_ACTION_TYPES, TOOL_ITEMS } from "../../constants";
+import { TOOL_ACTION_TYPES, TOOL_ITEMS, ARROW_LENGTH } from "../../constants";
 import toolboxContext from "../../store/toolbox-context";
+import { getArrowHeadsCoordinates } from "../../utils/math";
+import { getSvgPathFromStroke } from "../../utils/element";
+import getStroke from "perfect-freehand";
 
 import classes from "./index.module.css";
 
@@ -62,6 +65,7 @@ function Board() {
     const canvas = canvasRef.current;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    console.log('Canvas initialized to:', { width: canvas.width, height: canvas.height });
   }, []);
 
   useEffect(() => {
@@ -116,12 +120,32 @@ function Board() {
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
+    
+    // Ensure canvas is properly sized before rendering
+    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      console.log('Canvas resized in useLayoutEffect:', { width: canvas.width, height: canvas.height });
+    }
+    
     const context = canvas.getContext("2d");
+    
+    console.log('=== BOARD RENDER DEBUG ===');
+    console.log('Canvas element:', canvas);
+    console.log('Canvas context:', context);
+    console.log('Elements to render:', elements);
+    console.log('Elements length:', elements.length);
+    console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
+    
+    // Clear canvas with background first
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
     context.save();
 
     const roughCanvas = rough.canvas(canvas);
 
-    elements.forEach((element) => {
+    elements.forEach((element, index) => {
       const isSelected = selectedElements.includes(element.id);
       
       switch (element.type) {
@@ -129,6 +153,54 @@ function Board() {
         case TOOL_ITEMS.RECTANGLE:
         case TOOL_ITEMS.CIRCLE:
         case TOOL_ITEMS.ARROW:
+          
+          // If element doesn't have roughEle (from database), create it
+          if (!element.roughEle) {
+            const gen = rough.generator();
+            let options = {
+              seed: element.id + 1,
+              fillStyle: "solid",
+            };
+            if (element.stroke) {
+              options.stroke = element.stroke;
+            }
+            if (element.fill) {
+              options.fill = element.fill;
+            }
+            if (element.size) {
+              options.strokeWidth = element.size;
+            }
+            
+            switch (element.type) {
+              case TOOL_ITEMS.LINE:
+                element.roughEle = gen.line(element.x1, element.y1, element.x2, element.y2, options);
+                break;
+              case TOOL_ITEMS.RECTANGLE:
+                element.roughEle = gen.rectangle(element.x1, element.y1, element.x2 - element.x1, element.y2 - element.y1, options);
+                break;
+              case TOOL_ITEMS.CIRCLE:
+                const cx = (element.x1 + element.x2) / 2;
+                const cy = (element.y1 + element.y2) / 2;
+                const width = element.x2 - element.x1;
+                const height = element.y2 - element.y1;
+                element.roughEle = gen.ellipse(cx, cy, width, height, options);
+                break;
+              case TOOL_ITEMS.ARROW:
+                const { x3, y3, x4, y4 } = getArrowHeadsCoordinates(
+                  element.x1, element.y1, element.x2, element.y2, ARROW_LENGTH
+                );
+                const points = [
+                  [element.x1, element.y1],
+                  [element.x2, element.y2],
+                  [x3, y3],
+                  [element.x2, element.y2],
+                  [x4, y4],
+                ];
+                element.roughEle = gen.linearPath(points, options);
+                break;
+            }
+          }
+          
           roughCanvas.draw(element.roughEle);
           if (isSelected) {
             context.strokeStyle = "#007bff";
@@ -168,7 +240,6 @@ function Board() {
             context.strokeRect(element.x1 - 2, element.y1 - 2, textWidth + 4, textHeight + 4);
             context.setLineDash([]);
           }
-          context.restore();
           break;
         default:
           throw new Error("Type not recognized");

@@ -1,4 +1,4 @@
-import React, { useCallback, useReducer, useRef } from "react";
+import React, { useCallback, useReducer, useRef, useEffect } from "react";
 
 import boardContext from "./board-context";
 import { BOARD_ACTIONS, TOOL_ACTION_TYPES, TOOL_ITEMS } from "../constants";
@@ -10,6 +10,9 @@ import {
   isPointNearSelectedElement,
 } from "../utils/element";
 import getStroke from "perfect-freehand";
+import { useAppContext } from "../context/AppContext";
+import { useParams } from "react-router-dom";
+import canvasService from "../services/CanvasService";
 
 const boardReducer = (state, action) => {
   switch (action.type) {
@@ -352,12 +355,79 @@ const boardReducer = (state, action) => {
         index: state.index + 1,
       };
     }
+    case BOARD_ACTIONS.LOAD_CANVAS_DATA: {
+      const { name, description, owner, elements, shared_with, isPublic } = action.payload;
+      
+      // Helper function to reconstruct brush paths from points data
+      const reconstructElement = (element) => {
+        let reconstructedElement = { ...element };
+        
+        if (element.type === TOOL_ITEMS.BRUSH && element.points && !element.path) {
+          // Recreate Path2D from points
+          const path = new Path2D(
+            getSvgPathFromStroke(getStroke(element.points, { size: element.size || 5 }))
+          );
+          reconstructedElement.path = path;
+        }
+        
+        // Reconstruct rough elements for shapes
+        if ([TOOL_ITEMS.LINE, TOOL_ITEMS.RECTANGLE, TOOL_ITEMS.CIRCLE, TOOL_ITEMS.ARROW].includes(element.type) && !element.roughEle) {
+          const createdElement = createElement(
+            element.id,
+            element.x1,
+            element.y1,
+            element.x2,
+            element.y2,
+            {
+              type: element.type,
+              stroke: element.stroke,
+              fill: element.fill,
+              size: element.size,
+            }
+          );
+          reconstructedElement.roughEle = createdElement.roughEle;
+        }
+        
+        return reconstructedElement;
+      };
+      
+      // Reconstruct brush paths from points data
+      const reconstructedElements = (elements || []).map(reconstructElement);
+      
+      // Reconstruct history as well
+      // const reconstructedHistory = (history || [[]]).map(historyElements => 
+      //   historyElements.map(reconstructElement)
+      // );
+      
+      return {
+        ...state,
+        name,
+        description,
+        owner,
+        shared_with,
+        isPublic,
+        elements: reconstructedElements,
+        history: [],
+        index: 0,
+        selectedElements: [],
+        selectionArea: null,
+      };
+    }
+    case BOARD_ACTIONS.SAVE_CANVAS_DATA: {
+      // This action doesn't change state, just triggers save
+      return state;
+    }
     default:
       return state;
   }
 };
 
 const initialBoardState = {
+  name: "Untitled Canvas",
+  description: "",
+  owner: null,
+  shared_with: [],
+  isPublic: false,
   activeToolItem: TOOL_ITEMS.BRUSH,
   toolActionType: TOOL_ACTION_TYPES.NONE,
   elements: [],
@@ -370,12 +440,67 @@ const initialBoardState = {
 };
 
 const BoardProvider = ({ children }) => {
+  const {token} = useAppContext();
+  const {canvasId} = useParams();
+
+
   const [boardState, dispatchBoardAction] = useReducer(
     boardReducer,
     initialBoardState
   );
   
   const eraserThrottleRef = useRef(null);
+  const autoSaveIntervalRef = useRef(null);
+
+  // Load auto-saved data on mount
+  useEffect(() => {
+    const loadAutoSavedData = async () => {
+      // Only try to load canvas if canvasId exists (not for new canvases)
+      if (canvasId) {
+        const res = await canvasService.getCanvasById(token, canvasId);
+        if (res.success) {
+          const canvasData = res.data.canvas;
+          dispatchBoardAction({
+            type: BOARD_ACTIONS.LOAD_CANVAS_DATA,
+            payload: canvasData,
+          });
+        }
+      }
+    };
+
+    loadAutoSavedData();
+  }, [canvasId, token]);
+
+
+
+  // Set up auto-save interval
+  useEffect(() => {
+    autoSaveIntervalRef.current = setInterval(() => {
+      if (boardState.elements.length > 0) {
+        autoSaveHandler();
+      }
+    }, 30000); // Auto-save every 30 seconds
+
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+      }
+    };
+  }, [boardState.elements.length]);
+
+  // Auto-save when leaving the page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (boardState.elements.length > 0) {
+        autoSaveHandler();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [boardState.elements.length]);
 
   const changeToolHandler = useCallback((tool) => {
     dispatchBoardAction({
@@ -608,7 +733,93 @@ const BoardProvider = ({ children }) => {
     });
   }, []);
 
+  const saveCanvasHandler = useCallback(async() => {
+    const cleanElements = boardState.elements.map(element => {
+      const cleanElement = { ...element };
+      if (element.type === 'BRUSH' && element.path) {
+        // Remove path property as it can't be serialized
+        delete cleanElement.path;
+      }
+      // Remove roughEle property as it can't be serialized
+      if (cleanElement.roughEle) {
+        delete cleanElement.roughEle;
+      }
+      return cleanElement;
+    });
+
+    if (canvasId) {
+      const res = await canvasService.updateCanvas(token, canvasId, {
+        elements: cleanElements
+      });
+
+      if (res.success) {
+        console.log("Canvas updated successfully");
+      } else {
+        console.error("Failed to update canvas:", res);
+      }
+    } else {
+      const res = await canvasService.createCanvas(token, {
+        elements: cleanElements
+      });
+
+      if (res.success) {
+        console.log("Canvas created successfully");
+      } else {
+        console.error("Failed to create canvas:", res);
+      }
+    }
+  }, [boardState.elements, boardState.history, boardState.index]);
+
+  const loadCanvasHandler = useCallback(async () => {
+    const res = await canvasService.getCanvasById(token, canvasId);
+    if (res.success) {
+      const canvasData = res.data.canvas;
+      dispatchBoardAction({
+        type: BOARD_ACTIONS.LOAD_CANVAS_DATA,
+        payload: canvasData,
+      });
+    }
+  }, []);
+  
+
+  const autoSaveHandler = useCallback(async () => {
+
+    const cleanElements = boardState.elements.map(element => {
+      const cleanElement = { ...element };
+      if (element.type === 'BRUSH' && element.path) {
+        // Remove path property as it can't be serialized
+        delete cleanElement.path;
+      }
+      // Remove roughEle property as it can't be serialized
+      if (cleanElement.roughEle) {
+        delete cleanElement.roughEle;
+      }
+      return cleanElement;
+    });
+
+    if (canvasId) {
+      const res = await canvasService.updateCanvas(token, canvasId, {
+        elements: cleanElements
+      });
+
+      if (res.success) {
+        console.log("Canvas updated successfully");
+      } else {
+        console.error("Failed to update canvas:", res);
+      }
+    } else {
+      const res = await canvasService.createCanvas(token, {
+        elements: cleanElements
+      });
+    }
+  }, [boardState.elements]);
+
   const boardContextValue = {
+    name: boardState.name,
+    description: boardState.description,
+    owner: boardState.owner,
+    shared_with: boardState.shared_with,
+    isPublic: boardState.isPublic,
     activeToolItem: boardState.activeToolItem,
     elements: boardState.elements,
     toolActionType: boardState.toolActionType,
@@ -625,6 +836,9 @@ const BoardProvider = ({ children }) => {
     deleteSelected: deleteSelectedHandler,
     copySelected: copySelectedHandler,
     paste: pasteHandler,
+    saveCanvas: saveCanvasHandler,
+    loadCanvas: loadCanvasHandler,
+    autoSave: autoSaveHandler,
   };
 
   return (

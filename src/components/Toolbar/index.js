@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import classes from "./index.module.css";
 
 import cx from "classnames";
@@ -23,6 +24,8 @@ import boardContext from "../../store/board-context";
 const Toolbar = ({ editing = true }) => {
   const { activeToolItem, changeToolHandler, undo, redo } =
     useContext(boardContext);
+
+  const navigate = useNavigate();
 
   const [projectName, setProjectName] = useState("My Boards Canvas");
   const [isSharePopupOpen, setIsSharePopupOpen] = useState(false);
@@ -58,7 +61,7 @@ const Toolbar = ({ editing = true }) => {
     <div className={classes.container}>
       <div className={classes.left}>
         <div className={classes.btn}>
-          <FaArrowLeft />
+          <FaArrowLeft onClick={() => navigate("/")} />
         </div>
         <input
           type="text"
@@ -67,7 +70,7 @@ const Toolbar = ({ editing = true }) => {
           onKeyDown={handleProjectNameKeyDown}
           className={classes.projectName}
           disabled={!editing}
-          autoFocus={editing}
+          autoFocus={false}
           spellCheck="false"
           autoComplete="off"
         />

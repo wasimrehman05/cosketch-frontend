@@ -44,6 +44,46 @@ class CanvasService {
             },
         });
     }
+
+    async createCanvas(token, canvasData) {
+        return this.request('/canvas', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(canvasData || {}),
+        });
+    }
+
+    async getCanvasById(token, canvasId) {
+        return this.request(`/canvas/${canvasId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+    }
+
+    async updateCanvas(token, canvasId, canvasData) {
+        return this.request(`/canvas/${canvasId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(canvasData || {}),
+        });
+    }
+
+    async deleteCanvas(token, canvasId) {   
+        return this.request(`/canvas/${canvasId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+    }
 }
 
 const canvasService = new CanvasService();

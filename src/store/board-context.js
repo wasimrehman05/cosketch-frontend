@@ -16,6 +16,9 @@ const boardContext = createContext({
   deleteSelected: () => {},
   copySelected: () => {},
   paste: () => {},
+  saveCanvas: () => {},
+  loadCanvas: () => {},
+  autoSave: () => {},
 });
 
 export default boardContext;

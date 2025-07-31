@@ -106,6 +106,15 @@ const Home = () => {
         }
     }, [checkAuthStatus, isAuthenticated, token]);
 
+    const handleCreateNewCanvas = async () => {
+        const res = await canvasService.createCanvas(token, {});
+        if (res.success) {
+            navigate(`/canvas/${res.data.canvas._id}`);
+        } else {
+            console.error("Failed to create canvas:", res);
+        }
+    };
+
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
     };
@@ -129,10 +138,13 @@ const Home = () => {
     };
 
     const handleTryCanvas = () => {
-        navigate("/canvas");
+        // Clear any existing auto-saved data to start fresh
+        localStorage.removeItem('canvas_autosave');
+        handleCreateNewCanvas();
     };
 
     const handleCanvasOpen = (canvas) => {
+        
         navigate(`/canvas/${canvas._id}`);
     };
 
@@ -231,7 +243,7 @@ const Home = () => {
                                     className={styles.primaryButton}
                                     onClick={handleTryCanvas}
                                 >
-                                    {isAuthenticated ? "Go to Canvas" : "Start drawing"}
+                                    {isAuthenticated ? "Create New" : "Start drawing"}
                                 </Button>
 
                                 {!isAuthenticated && (
