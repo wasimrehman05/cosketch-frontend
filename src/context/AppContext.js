@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import Cookies from 'js-cookie';
-import apiService from '../services/api';
+import userService from '../services/userService';
 
 const AppContext = createContext();
 
@@ -14,12 +14,13 @@ export const useAppContext = () => {
 
 export const AppProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [token, setToken] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const fetchUserProfile = useCallback(async (token) => {
+    const fetchUserProfile = useCallback(async (authToken) => {
         try {
-            const result = await apiService.getProfile(token);
+            const result = await userService.getProfile(authToken);
 
             if (result.success) {
                 const { user: userData } = result.data;
@@ -38,9 +39,10 @@ export const AppProvider = ({ children }) => {
     }, []);
 
     const checkAuthStatus = useCallback(async () => {
-        const token = Cookies.get('token');
-        if (token) {
-            await fetchUserProfile(token);
+        const storedToken = Cookies.get('token');
+        if (storedToken) {
+            setToken(storedToken);
+            await fetchUserProfile(storedToken);
         } else {
             setLoading(false);
         }
@@ -53,19 +55,21 @@ export const AppProvider = ({ children }) => {
 
     const logout = useCallback(() => {
         Cookies.remove('token');
+        setToken(null);
         setUser(null);
         setIsAuthenticated(false);
     }, []);
 
     const login = async (email, password) => {
         try {
-            const result = await apiService.login(email, password);
+            const result = await userService.login(email, password);
 
             if (result.success) {
                 const { accessToken } = result.data;
                 Cookies.set('token', accessToken, { expires: 1 });
-                setIsAuthenticated(true);
+                setToken(accessToken);
                 fetchUserProfile(accessToken);
+                setIsAuthenticated(true);
                 return { success: true };
             } else {
                 return { success: false, error: result.message || 'Login failed' };
@@ -78,11 +82,12 @@ export const AppProvider = ({ children }) => {
 
     const register = async (name, email, password) => {
         try {
-            const result = await apiService.register(name, email, password);
+            const result = await userService.register(name, email, password);
 
             if (result.success) {
                 const { accessToken, user: userData } = result.data;
                 Cookies.set('token', accessToken, { expires: 1 });
+                setToken(accessToken);
                 setUser(userData);
                 setIsAuthenticated(true);
                 return { success: true };
@@ -97,6 +102,7 @@ export const AppProvider = ({ children }) => {
 
     const value = {
         user,
+        token,
         isAuthenticated,
         loading,
         login,

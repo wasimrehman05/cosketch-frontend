@@ -88,14 +88,19 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 3rem;
+  align-items: start;
+}
+
+/* When not authenticated - horizontal layout */
+.contentGrid:not(.authenticated) {
+  grid-template-columns: 1fr 1fr;
   align-items: center;
 }
 
-@media (min-width: 768px) {
-  .contentGrid {
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
-  }
+/* When authenticated - vertical layout */
+.contentGrid.authenticated {
+  grid-template-columns: 1fr;
+  gap: 2rem;
 }
 
 .heroSection {
@@ -155,6 +160,116 @@
 
 .secondaryButton:hover {
   background-color: #f9fafb;
+}
+
+.rightSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.canvasTableContainer {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.canvasTableTitle {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.canvasTable {
+  box-shadow: none !important;
+}
+
+.tableHeader {
+  background-color: #f9fafb !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.canvasTableRow {
+  transition: background-color 0.2s ease;
+}
+
+.canvasTableRow:hover {
+  background-color: #f9fafb;
+}
+
+.canvasNameCell {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.canvasNameContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.canvasIcon {
+  color: #6b7280;
+  font-size: 1.25rem;
+}
+
+.canvasNameContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.canvasName {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.sharedIcon {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.canvasOwnerCell {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.canvasOwner {
+  color: #6b7280;
+}
+
+.canvasDateCell {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.canvasDate {
+  color: #9ca3af;
+}
+
+.canvasActionsCell {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.canvasActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.actionButton {
+  color: #6b7280;
+  padding: 0.25rem;
+}
+
+.actionButton:hover {
+  background-color: #e5e7eb;
+  color: #374151;
 }
 
 .featureCards {

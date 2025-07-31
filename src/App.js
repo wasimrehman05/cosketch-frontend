@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { AppProvider } from "./context/AppContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -30,7 +31,14 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/canvas" element={<Canvas />} />
+            <Route 
+              path="/canvas" 
+              element={
+                <ProtectedRoute>
+                  <Canvas />
+                </ProtectedRoute>
+              } 
+            />
           </Routes>
         </Router>
       </ThemeProvider>
