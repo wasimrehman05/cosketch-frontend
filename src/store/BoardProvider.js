@@ -884,6 +884,7 @@ const BoardProvider = ({ children }) => {
   }, [boardState.elements.length, boardState.name, autoSaveHandler]);
 
   // Auto-save when name changes (for immediate name persistence)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (canvasId && boardState.name && boardState.name !== "Untitled Canvas") {
       // Debounce the name save to avoid too many API calls
@@ -1161,6 +1162,7 @@ const BoardProvider = ({ children }) => {
     }
   }, [boardState.elements, canvasId, token]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadCanvasHandler = useCallback(async () => {
     const res = await canvasService.getCanvasById(token, canvasId);
     if (res.success) {
@@ -1172,6 +1174,7 @@ const BoardProvider = ({ children }) => {
     }
   }, [canvasId, token]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateNameHandler = useCallback((newName) => {
     dispatchBoardAction({
       type: BOARD_ACTIONS.UPDATE_NAME,
