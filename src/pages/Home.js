@@ -163,7 +163,7 @@ const Home = () => {
             {/* Header */}
             <header className={styles.header}>
                 <Typography variant="h5" className={styles.logo}>
-                    Whiteboard
+                    <img src="/icon.png" alt="CoSketch" className={styles.logoImage} />
                 </Typography>
 
                 <div className={styles.headerActions}>

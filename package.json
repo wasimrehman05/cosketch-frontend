@@ -1,6 +1,6 @@
 {
-  "name": "whiteboard-tutorial",
-  "version": "1.1.0",
+  "name": "cosketch",
+  "version": "2.1.0",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.14.0",
