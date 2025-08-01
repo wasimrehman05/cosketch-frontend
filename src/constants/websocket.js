@@ -1,7 +1,7 @@
 // WebSocket Configuration
 export const WEBSOCKET = {
     // Server URL
-    SERVER_URL: 'http://localhost:3001',
+    SERVER_URL: process.env.REACT_APP_WEBSOCKET_SERVER_URL || 'http://localhost:3001',
     
     // Connection settings
     RECONNECTION_ATTEMPTS: 5,
