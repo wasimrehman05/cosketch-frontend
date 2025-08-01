@@ -19,6 +19,10 @@ const boardContext = createContext({
   saveCanvas: () => {},
   loadCanvas: () => {},
   autoSave: () => {},
+  updateName: () => {},
+  shareCanvas: () => {},
+  removeShare: () => {},
+  updateSharePermission: () => {},
 });
 
 export default boardContext;

@@ -84,6 +84,37 @@ class CanvasService {
             },
         });
     }
+
+    async shareCanvas(token, canvasId, shareData) {
+        return this.request(`/canvas/${canvasId}/share`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(shareData),
+        });
+    }
+
+    async removeShare(token, canvasId, userId) {
+        return this.request(`/canvas/${canvasId}/share/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+    }
+
+    async updateSharePermission(token, canvasId, userId, canEdit) {
+        return this.request(`/canvas/${canvasId}/share/${userId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ canEdit }),
+        });
+    }
 }
 
 const canvasService = new CanvasService();

@@ -13,6 +13,7 @@ import getStroke from "perfect-freehand";
 import { useAppContext } from "../context/AppContext";
 import { useParams } from "react-router-dom";
 import canvasService from "../services/CanvasService";
+import userService from "../services/userService";
 
 const boardReducer = (state, action) => {
   switch (action.type) {
@@ -413,6 +414,65 @@ const boardReducer = (state, action) => {
         selectionArea: null,
       };
     }
+    case BOARD_ACTIONS.UPDATE_NAME: {
+      return {
+        ...state,
+        name: action.payload.name,
+      };
+    }
+    case BOARD_ACTIONS.SHARE_CANVAS: {
+      const { user, canEdit } = action.payload;
+      const existingShareIndex = state.shared_with.findIndex(
+        share => share.user._id === user._id
+      );
+      
+      if (existingShareIndex >= 0) {
+        // Update existing share
+        const updatedSharedWith = [...state.shared_with];
+        updatedSharedWith[existingShareIndex] = {
+          ...updatedSharedWith[existingShareIndex],
+          canEdit,
+          sharedAt: new Date()
+        };
+        return {
+          ...state,
+          shared_with: updatedSharedWith,
+        };
+      } else {
+        // Add new share
+        return {
+          ...state,
+          shared_with: [
+            ...state.shared_with,
+            {
+              user,
+              canEdit,
+              sharedAt: new Date()
+            }
+          ],
+        };
+      }
+    }
+    case BOARD_ACTIONS.REMOVE_SHARE: {
+      const { userId } = action.payload;
+      return {
+        ...state,
+        shared_with: state.shared_with.filter(
+          share => share.user._id !== userId
+        ),
+      };
+    }
+    case BOARD_ACTIONS.UPDATE_SHARE_PERMISSION: {
+      const { userId, canEdit } = action.payload;
+      return {
+        ...state,
+        shared_with: state.shared_with.map(share => 
+          share.user._id === userId 
+            ? { ...share, canEdit, sharedAt: new Date() }
+            : share
+        ),
+      };
+    }
     case BOARD_ACTIONS.SAVE_CANVAS_DATA: {
       // This action doesn't change state, just triggers save
       return state;
@@ -471,7 +531,37 @@ const BoardProvider = ({ children }) => {
     loadAutoSavedData();
   }, [canvasId, token]);
 
+  const autoSaveHandler = useCallback(async () => {
+    // Always use current boardState values to ensure we have the latest name
+    const cleanElements = boardState.elements.map(element => {
+      const cleanElement = { ...element };
+      if (element.type === 'BRUSH' && element.path) {
+        // Remove path property as it can't be serialized
+        delete cleanElement.path;
+      }
+      // Remove roughEle property as it can't be serialized
+      if (cleanElement.roughEle) {
+        delete cleanElement.roughEle;
+      }
+      return cleanElement;
+    });
 
+    if (canvasId) {
+      const res = await canvasService.updateCanvas(token, canvasId, {
+        elements: cleanElements,
+        name: boardState.name
+      });
+
+      if (!res.success) {
+        console.error("Failed to update canvas:", res);
+      }
+    } else {
+      await canvasService.createCanvas(token, {
+        elements: cleanElements,
+        name: boardState.name
+      });
+    }
+  }, [boardState.elements, boardState.name, canvasId, token]);
 
   // Set up auto-save interval
   useEffect(() => {
@@ -486,7 +576,7 @@ const BoardProvider = ({ children }) => {
         clearInterval(autoSaveIntervalRef.current);
       }
     };
-  }, [boardState.elements.length]);
+  }, [boardState.elements.length, boardState.name, autoSaveHandler]);
 
   // Auto-save when leaving the page
   useEffect(() => {
@@ -500,7 +590,19 @@ const BoardProvider = ({ children }) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [boardState.elements.length]);
+  }, [boardState.elements.length, boardState.name, autoSaveHandler]);
+
+  // Auto-save when name changes (for immediate name persistence)
+  useEffect(() => {
+    if (canvasId && boardState.name && boardState.name !== "Untitled Canvas") {
+      // Debounce the name save to avoid too many API calls
+      const timeoutId = setTimeout(() => {
+        autoSaveHandler();
+      }, 1000); // Save after 1 second of no changes
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [boardState.name, canvasId, autoSaveHandler]);
 
   const changeToolHandler = useCallback((tool) => {
     dispatchBoardAction({
@@ -749,26 +851,24 @@ const BoardProvider = ({ children }) => {
 
     if (canvasId) {
       const res = await canvasService.updateCanvas(token, canvasId, {
-        elements: cleanElements
+        elements: cleanElements,
+        name: boardState.name
       });
 
-      if (res.success) {
-        console.log("Canvas updated successfully");
-      } else {
+      if (!res.success) {
         console.error("Failed to update canvas:", res);
       }
     } else {
       const res = await canvasService.createCanvas(token, {
-        elements: cleanElements
+        elements: cleanElements,
+        name: boardState.name
       });
 
-      if (res.success) {
-        console.log("Canvas created successfully");
-      } else {
+      if (!res.success) {
         console.error("Failed to create canvas:", res);
       }
     }
-  }, [boardState.elements, boardState.history, boardState.index]);
+  }, [boardState.elements, canvasId, token]);
 
   const loadCanvasHandler = useCallback(async () => {
     const res = await canvasService.getCanvasById(token, canvasId);
@@ -779,40 +879,92 @@ const BoardProvider = ({ children }) => {
         payload: canvasData,
       });
     }
-  }, []);
-  
+  }, [canvasId, token]);
 
-  const autoSaveHandler = useCallback(async () => {
-
-    const cleanElements = boardState.elements.map(element => {
-      const cleanElement = { ...element };
-      if (element.type === 'BRUSH' && element.path) {
-        // Remove path property as it can't be serialized
-        delete cleanElement.path;
-      }
-      // Remove roughEle property as it can't be serialized
-      if (cleanElement.roughEle) {
-        delete cleanElement.roughEle;
-      }
-      return cleanElement;
+  const updateNameHandler = useCallback((newName) => {
+    dispatchBoardAction({
+      type: BOARD_ACTIONS.UPDATE_NAME,
+      payload: { name: newName },
     });
+  }, []);
 
-    if (canvasId) {
-      const res = await canvasService.updateCanvas(token, canvasId, {
-        elements: cleanElements
-      });
-
-      if (res.success) {
-        console.log("Canvas updated successfully");
-      } else {
-        console.error("Failed to update canvas:", res);
+  const shareCanvasHandler = useCallback(async (email, canEdit) => {
+    try {
+      // Check if we have a valid canvasId
+      if (!canvasId) {
+        throw new Error('Canvas not saved yet. Please save the canvas first before sharing.');
       }
-    } else {
-      const res = await canvasService.createCanvas(token, {
-        elements: cleanElements
+
+      // Check if we have a valid token
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+
+      // First check if user exists
+      const userCheckRes = await userService.checkUserExists(email);
+      
+      if (!userCheckRes.success) {
+        throw new Error(userCheckRes.message || 'User not found. Please make sure the email is registered.');
+      }
+
+      const user = userCheckRes.data.user;
+      
+      // Share canvas with backend
+      const shareRes = await canvasService.shareCanvas(token, canvasId, {
+        email,
+        canEdit
       });
+
+      if (shareRes.success) {
+        // Update local state
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.SHARE_CANVAS,
+          payload: { user, canEdit },
+        });
+        return { success: true, message: 'Canvas shared successfully!' };
+      } else {
+        throw new Error(shareRes.message || 'Failed to share canvas');
+      }
+    } catch (error) {
+      return { success: false, message: error.message };
     }
-  }, [boardState.elements]);
+  }, [canvasId, token]);
+
+  const removeShareHandler = useCallback(async (userId) => {
+    try {
+      const res = await canvasService.removeShare(token, canvasId, userId);
+      
+      if (res.success) {
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.REMOVE_SHARE,
+          payload: { userId },
+        });
+        return { success: true, message: 'Share removed successfully!' };
+      } else {
+        throw new Error(res.message || 'Failed to remove share');
+      }
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }, [canvasId, token]);
+
+  const updateSharePermissionHandler = useCallback(async (userId, canEdit) => {
+    try {
+      const res = await canvasService.updateSharePermission(token, canvasId, userId, canEdit);
+      
+      if (res.success) {
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.UPDATE_SHARE_PERMISSION,
+          payload: { userId, canEdit },
+        });
+        return { success: true, message: 'Permission updated successfully!' };
+      } else {
+        throw new Error(res.message || 'Failed to update permission');
+      }
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }, [canvasId, token]);
 
   const boardContextValue = {
     name: boardState.name,
@@ -839,6 +991,10 @@ const BoardProvider = ({ children }) => {
     saveCanvas: saveCanvasHandler,
     loadCanvas: loadCanvasHandler,
     autoSave: autoSaveHandler,
+    updateName: updateNameHandler,
+    shareCanvas: shareCanvasHandler,
+    removeShare: removeShareHandler,
+    updateSharePermission: updateSharePermissionHandler,
   };
 
   return (

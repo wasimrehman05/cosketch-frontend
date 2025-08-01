@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Button, Typography, Card, CardContent, Avatar, Menu, MenuItem, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from "@mui/material";
-import { Edit as EditIcon, Share as ShareIcon, Group as GroupIcon, AccountCircle as AccountIcon, Logout as LogoutIcon, MoreVert as MoreVertIcon, Description as DescriptionIcon, OpenInNew as OpenIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import { Edit as EditIcon, Share as ShareIcon, Group as GroupIcon, AccountCircle as AccountIcon, Logout as LogoutIcon, Description as DescriptionIcon, OpenInNew as OpenIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { FaUsers } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
@@ -148,9 +148,14 @@ const Home = () => {
         navigate(`/canvas/${canvas._id}`);
     };
 
-    const handleCanvasDelete = (canvas) => {
+    const handleCanvasDelete = async (canvas) => {
         // TODO: Implement delete functionality
-        console.log("Delete canvas:", canvas._id);
+        const res = await canvasService.deleteCanvas(token, canvas._id);
+        if (res.success) {
+            setCanvases(canvases.filter(c => c._id !== canvas._id));
+        } else {
+            console.error("Failed to delete canvas:", res);
+        }
     };
 
     return (

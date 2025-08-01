@@ -5,8 +5,6 @@ import boardContext from "../../store/board-context";
 import { TOOL_ACTION_TYPES, TOOL_ITEMS, ARROW_LENGTH } from "../../constants";
 import toolboxContext from "../../store/toolbox-context";
 import { getArrowHeadsCoordinates } from "../../utils/math";
-import { getSvgPathFromStroke } from "../../utils/element";
-import getStroke from "perfect-freehand";
 
 import classes from "./index.module.css";
 
@@ -65,7 +63,6 @@ function Board() {
     const canvas = canvasRef.current;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    console.log('Canvas initialized to:', { width: canvas.width, height: canvas.height });
   }, []);
 
   useEffect(() => {
@@ -125,17 +122,9 @@ function Board() {
     if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      console.log('Canvas resized in useLayoutEffect:', { width: canvas.width, height: canvas.height });
     }
     
     const context = canvas.getContext("2d");
-    
-    console.log('=== BOARD RENDER DEBUG ===');
-    console.log('Canvas element:', canvas);
-    console.log('Canvas context:', context);
-    console.log('Elements to render:', elements);
-    console.log('Elements length:', elements.length);
-    console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
     
     // Clear canvas with background first
     context.fillStyle = '#ffffff';
@@ -198,6 +187,9 @@ function Board() {
                 ];
                 element.roughEle = gen.linearPath(points, options);
                 break;
+              default:
+                console.warn(`Unrecognized element type in roughEle generation: ${element.type}`);
+                break;
             }
           }
           
@@ -242,7 +234,9 @@ function Board() {
           }
           break;
         default:
-          throw new Error("Type not recognized");
+          // Handle unrecognized types gracefully
+          console.warn(`Unrecognized element type: ${element.type}`);
+          break;
       }
     });
 

@@ -60,6 +60,13 @@ class UserService {
             },
         });
     }
+
+    async checkUserExists(email) {
+        return this.request('/user/check', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        });
+    }
 }
 
 const userService = new UserService();

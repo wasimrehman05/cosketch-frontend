@@ -92,6 +92,19 @@
   border-bottom: none;
 }
 
+.sharedItem {
+  @apply flex justify-between items-center py-2 px-0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sharedItem:last-child {
+  border-bottom: none;
+}
+
+.sharedUserInfo {
+  @apply flex justify-between items-center flex-1;
+}
+
 .sharedItem span {
   @apply text-sm;
   color: #374151;
@@ -105,14 +118,44 @@
 
 .editorBadge {
   @apply px-2 py-1 text-xs font-medium rounded-full;
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
 }
 
 .viewerBadge {
   @apply px-2 py-1 text-xs font-medium rounded-full;
-  background-color: #f3f4f6;
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+.sharedActions {
+  @apply flex items-center space-x-2 ml-3;
+}
+
+.permissionSelect {
+  @apply text-xs px-2 py-1 border border-gray-300 rounded;
+  background-color: white;
   color: #374151;
+  font-size: 11px;
+  min-width: 70px;
+}
+
+.permissionSelect:focus {
+  @apply outline-none border-blue-500 ring-1 ring-blue-500;
+}
+
+.removeButton {
+  @apply text-red-500 hover:text-red-700 text-lg font-bold;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.removeButton:hover {
+  background-color: #fef2f2;
 }
 
 .btn {
@@ -184,4 +227,38 @@
 
 .toolItem.disabled:hover {
   @apply bg-transparent text-gray-400;
+}
+
+.shareNotification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+}
+
+.shareNotification.success {
+  background-color: #10b981;
+  color: white;
+}
+
+.shareNotification.error {
+  background-color: #ef4444;
+  color: white;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
