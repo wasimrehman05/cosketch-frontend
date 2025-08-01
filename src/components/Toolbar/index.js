@@ -15,15 +15,18 @@ import {
   FaDownload,
   FaRegObjectGroup,
   FaArrowLeft,
-  FaUserPlus
+  FaUserPlus,
+  FaUsers,
+  FaWifi
 } from "react-icons/fa";
+import { PiWifiSlash as FaWifiSlash } from "react-icons/pi";
 import { LuRectangleHorizontal } from "react-icons/lu";
 import { TOOL_ITEMS } from "../../constants";
 import boardContext from "../../store/board-context";
 import { useAppContext } from "../../context/AppContext";
 
 const Toolbar = () => {
-  const { name, owner, shared_with, activeToolItem, changeToolHandler, undo, redo, updateName, shareCanvas, removeShare, updateSharePermission } = useContext(boardContext);
+  const { name, owner, shared_with, activeToolItem, changeToolHandler, undo, redo, updateName, shareCanvas, removeShare, updateSharePermission, roomUsers, isConnected } = useContext(boardContext);
   const { user } = useAppContext();
   let [editing, setEditing] = useState(false);
   const [newSharedUser, setNewSharedUser] = useState({
@@ -250,6 +253,21 @@ const Toolbar = () => {
         </div>
       )}
       <div className={classes.right}>
+        {/* Connection Status */}
+        <div className={`${classes.btn} ${classes.connectionStatus}`}>
+          {isConnected ? (
+            <FaWifi className={classes.connected} title="Connected" />
+          ) : (
+            <FaWifiSlash className={classes.disconnected} title="Disconnected" />
+          )}
+        </div>
+        
+        {/* User Count */}
+        <div className={`${classes.btn} ${classes.userCount}`} title={`${roomUsers.length} user${roomUsers.length !== 1 ? 's' : ''} online`}>
+          <FaUsers />
+          <span className={classes.userCountText}>{roomUsers.length}</span>
+        </div>
+        
         <div className={classes.btn} onClick={() => setIsSharePopupOpen(!isSharePopupOpen)}>
           <FaUserPlus />
         </div>

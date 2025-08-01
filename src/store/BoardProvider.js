@@ -14,6 +14,8 @@ import { useAppContext } from "../context/AppContext";
 import { useParams } from "react-router-dom";
 import canvasService from "../services/CanvasService";
 import userService from "../services/userService";
+import webSocketService from "../services/websocketService";
+import { WEBSOCKET } from "../constants/websocket";
 
 const boardReducer = (state, action) => {
   switch (action.type) {
@@ -42,6 +44,12 @@ const boardReducer = (state, action) => {
         { type: state.activeToolItem, stroke, fill, size }
       );
       const prevElements = state.elements;
+      
+                  // Emit element creation via WebSocket immediately
+            if (webSocketService.getConnectionStatus()) {
+              webSocketService.createElement(newElement);
+            }
+      
       return {
         ...state,
         toolActionType:
@@ -69,6 +77,12 @@ const boardReducer = (state, action) => {
             size,
           });
           newElements[index] = newElement;
+          
+                      // Emit element update via WebSocket immediately
+            if (webSocketService.getConnectionStatus()) {
+              webSocketService.updateElement(newElement.id, newElement);
+            }
+          
           return {
             ...state,
             elements: newElements,
@@ -81,6 +95,15 @@ const boardReducer = (state, action) => {
           newElements[index].path = new Path2D(
             getSvgPathFromStroke(getStroke(newElements[index].points, { size: newElements[index].size || 5 }))
           );
+          
+                      // Emit brush update via WebSocket with throttling
+            if (webSocketService.getConnectionStatus() && newElements[index].points.length % WEBSOCKET.BRUSH_THROTTLE_INTERVAL === 0) {
+            webSocketService.updateElement(newElements[index].id, {
+              points: newElements[index].points,
+              path: newElements[index].path
+            });
+          }
+          
           return {
             ...state,
             elements: newElements,
@@ -93,6 +116,18 @@ const boardReducer = (state, action) => {
       const elementsCopy = [...state.elements];
       const newHistory = state.history.slice(0, state.index + 1);
       newHistory.push(elementsCopy);
+      
+      // Send final update for brush strokes to ensure complete data
+      if (webSocketService.getConnectionStatus() && elementsCopy.length > 0) {
+        const lastElement = elementsCopy[elementsCopy.length - 1];
+        if (lastElement.type === TOOL_ITEMS.BRUSH) {
+          webSocketService.updateElement(lastElement.id, {
+            points: lastElement.points,
+            path: lastElement.path
+          });
+        }
+      }
+      
       return {
         ...state,
         history: newHistory,
@@ -133,6 +168,12 @@ const boardReducer = (state, action) => {
       newElements[index].text = action.payload.text;
       const newHistory = state.history.slice(0, state.index + 1);
       newHistory.push(newElements);
+      
+      // Emit text update via WebSocket immediately
+      if (webSocketService.getConnectionStatus()) {
+        webSocketService.updateElement(newElements[index].id, { text: action.payload.text });
+      }
+      
       return {
         ...state,
         toolActionType: TOOL_ACTION_TYPES.NONE,
@@ -233,6 +274,19 @@ const boardReducer = (state, action) => {
           }
           
           newElements[elementIndex] = updatedElement;
+          
+          // Emit element move via WebSocket immediately
+          if (webSocketService.getConnectionStatus()) {
+            webSocketService.updateElement(elementId, {
+              x1: updatedElement.x1,
+              y1: updatedElement.y1,
+              x2: updatedElement.x2,
+              y2: updatedElement.y2,
+              points: updatedElement.points,
+              path: updatedElement.path,
+              roughEle: updatedElement.roughEle
+            });
+          }
         }
       });
       
@@ -269,6 +323,13 @@ const boardReducer = (state, action) => {
       );
       const newHistory = state.history.slice(0, state.index + 1);
       newHistory.push(newElements);
+      
+      // Emit element deletions via WebSocket immediately
+      if (webSocketService.getConnectionStatus()) {
+        state.selectedElements.forEach(elementId => {
+          webSocketService.deleteElement(elementId);
+        });
+      }
       
       return {
         ...state,
@@ -477,6 +538,127 @@ const boardReducer = (state, action) => {
       // This action doesn't change state, just triggers save
       return state;
     }
+    case BOARD_ACTIONS.SET_ROOM_USERS: {
+      return {
+        ...state,
+        roomUsers: action.payload.users,
+      };
+    }
+    case BOARD_ACTIONS.SET_CONNECTION_STATUS: {
+      return {
+        ...state,
+        isConnected: action.payload.isConnected,
+      };
+    }
+    case BOARD_ACTIONS.ADD_ELEMENT_FROM_SOCKET: {
+      const { element } = action.payload;
+      
+      // Helper function to reconstruct brush paths from points data
+      const reconstructElement = (element) => {
+        let reconstructedElement = { ...element };
+        
+        if (element.type === TOOL_ITEMS.BRUSH && element.points && !element.path) {
+          // Recreate Path2D from points
+          const path = new Path2D(
+            getSvgPathFromStroke(getStroke(element.points, { size: element.size || 5 }))
+          );
+          reconstructedElement.path = path;
+        }
+        
+        // Reconstruct rough elements for shapes
+        if ([TOOL_ITEMS.LINE, TOOL_ITEMS.RECTANGLE, TOOL_ITEMS.CIRCLE, TOOL_ITEMS.ARROW].includes(element.type) && !element.roughEle) {
+          const createdElement = createElement(
+            element.id,
+            element.x1,
+            element.y1,
+            element.x2,
+            element.y2,
+            {
+              type: element.type,
+              stroke: element.stroke,
+              fill: element.fill,
+              size: element.size,
+            }
+          );
+          reconstructedElement.roughEle = createdElement.roughEle;
+        }
+        
+        return reconstructedElement;
+      };
+      
+      const reconstructedElement = reconstructElement(element);
+      const newElements = [...state.elements, reconstructedElement];
+      
+      return {
+        ...state,
+        elements: newElements,
+      };
+    }
+    case BOARD_ACTIONS.UPDATE_ELEMENT_FROM_SOCKET: {
+      const { elementId, updates } = action.payload;
+      
+      // Helper function to reconstruct brush paths from points data
+      const reconstructElement = (element) => {
+        let reconstructedElement = { ...element };
+        
+        if (element.type === TOOL_ITEMS.BRUSH && element.points && !element.path) {
+          // Recreate Path2D from points
+          const path = new Path2D(
+            getSvgPathFromStroke(getStroke(element.points, { size: element.size || 5 }))
+          );
+          reconstructedElement.path = path;
+        }
+        
+        // Reconstruct rough elements for shapes
+        if ([TOOL_ITEMS.LINE, TOOL_ITEMS.RECTANGLE, TOOL_ITEMS.CIRCLE, TOOL_ITEMS.ARROW].includes(element.type) && !element.roughEle) {
+          const createdElement = createElement(
+            element.id,
+            element.x1,
+            element.y1,
+            element.x2,
+            element.y2,
+            {
+              type: element.type,
+              stroke: element.stroke,
+              fill: element.fill,
+              size: element.size,
+            }
+          );
+          reconstructedElement.roughEle = createdElement.roughEle;
+        }
+        
+        return reconstructedElement;
+      };
+      
+      const newElements = state.elements.map(element => {
+        if (element.id === elementId) {
+          const updatedElement = { ...element, ...updates };
+          return reconstructElement(updatedElement);
+        }
+        return element;
+      });
+      
+      return {
+        ...state,
+        elements: newElements,
+      };
+    }
+    case BOARD_ACTIONS.DELETE_ELEMENT_FROM_SOCKET: {
+      const { elementId } = action.payload;
+      const newElements = state.elements.filter(element => element.id !== elementId);
+      return {
+        ...state,
+        elements: newElements,
+      };
+    }
+    case BOARD_ACTIONS.UPDATE_CANVAS_FROM_SOCKET: {
+      const { elements, name } = action.payload;
+      return {
+        ...state,
+        elements: elements || state.elements,
+        name: name || state.name,
+      };
+    }
     default:
       return state;
   }
@@ -497,6 +679,8 @@ const initialBoardState = {
   selectionArea: null,
   lastMousePosition: { x: 0, y: 0 },
   clipboard: [],
+  roomUsers: [],
+  isConnected: false,
 };
 
 const BoardProvider = ({ children }) => {
@@ -510,13 +694,125 @@ const BoardProvider = ({ children }) => {
   );
   
   const eraserThrottleRef = useRef(null);
-  const autoSaveIntervalRef = useRef(null);
 
-  // Load auto-saved data on mount
+
+  // WebSocket integration
+  useEffect(() => {
+    if (!token || !canvasId) return;
+
+    // Connect to WebSocket
+    webSocketService.connect(token, canvasId);
+
+    // Set up WebSocket event handlers
+    const handleCanvasJoined = (data) => {
+      dispatchBoardAction({
+        type: BOARD_ACTIONS.LOAD_CANVAS_DATA,
+        payload: data,
+      });
+    };
+
+    const handleCanvasUpdated = (data) => {
+      if (data.updatedBy !== token) { // Don't update if it's our own update
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.UPDATE_CANVAS_FROM_SOCKET,
+          payload: { elements: data.elements, name: data.name },
+        });
+      }
+    };
+
+    const handleCanvasNameUpdated = (data) => {
+      if (data.updatedBy !== token) {
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.UPDATE_NAME,
+          payload: { name: data.name },
+        });
+      }
+    };
+
+    const handleElementCreated = (data) => {
+      if (data.createdBy !== token) {
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.ADD_ELEMENT_FROM_SOCKET,
+          payload: { element: data.element },
+        });
+      }
+    };
+
+    const handleElementUpdated = (data) => {
+      if (data.updatedBy !== token) {
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.UPDATE_ELEMENT_FROM_SOCKET,
+          payload: { elementId: data.elementId, updates: data.updates },
+        });
+      }
+    };
+
+    const handleElementDeleted = (data) => {
+      if (data.deletedBy !== token) {
+        dispatchBoardAction({
+          type: BOARD_ACTIONS.DELETE_ELEMENT_FROM_SOCKET,
+          payload: { elementId: data.elementId },
+        });
+      }
+    };
+
+    const handleRoomUsers = (users) => {
+      dispatchBoardAction({
+        type: BOARD_ACTIONS.SET_ROOM_USERS,
+        payload: { users },
+      });
+    };
+
+    const handleUserJoined = (data) => {
+      // When a user joins, we don't need to manually update the user count
+      // The backend will send a room-users event with the updated list
+    };
+
+    const handleUserLeft = (data) => {
+      // When a user leaves, we don't need to manually update the user count
+      // The backend will send a room-users event with the updated list
+    };
+
+    const handleConnectionStatus = (data) => {
+      dispatchBoardAction({
+        type: BOARD_ACTIONS.SET_CONNECTION_STATUS,
+        payload: { isConnected: data.isConnected },
+      });
+    };
+
+    // Register event handlers
+    webSocketService.on(WEBSOCKET.EVENTS.CANVAS_JOINED, handleCanvasJoined);
+    webSocketService.on(WEBSOCKET.EVENTS.CANVAS_UPDATED, handleCanvasUpdated);
+    webSocketService.on(WEBSOCKET.EVENTS.CANVAS_NAME_UPDATED, handleCanvasNameUpdated);
+    webSocketService.on(WEBSOCKET.EVENTS.ELEMENT_CREATED, handleElementCreated);
+    webSocketService.on(WEBSOCKET.EVENTS.ELEMENT_UPDATED, handleElementUpdated);
+    webSocketService.on(WEBSOCKET.EVENTS.ELEMENT_DELETED, handleElementDeleted);
+    webSocketService.on(WEBSOCKET.EVENTS.ROOM_USERS, handleRoomUsers);
+    webSocketService.on(WEBSOCKET.EVENTS.USER_JOINED, handleUserJoined);
+    webSocketService.on(WEBSOCKET.EVENTS.USER_LEFT, handleUserLeft);
+    webSocketService.on(WEBSOCKET.EVENTS.CONNECTION_STATUS, handleConnectionStatus);
+
+    // Cleanup on unmount
+    return () => {
+      webSocketService.off(WEBSOCKET.EVENTS.CANVAS_JOINED, handleCanvasJoined);
+      webSocketService.off(WEBSOCKET.EVENTS.CANVAS_UPDATED, handleCanvasUpdated);
+      webSocketService.off(WEBSOCKET.EVENTS.CANVAS_NAME_UPDATED, handleCanvasNameUpdated);
+      webSocketService.off(WEBSOCKET.EVENTS.ELEMENT_CREATED, handleElementCreated);
+      webSocketService.off(WEBSOCKET.EVENTS.ELEMENT_UPDATED, handleElementUpdated);
+      webSocketService.off(WEBSOCKET.EVENTS.ELEMENT_DELETED, handleElementDeleted);
+      webSocketService.off(WEBSOCKET.EVENTS.ROOM_USERS, handleRoomUsers);
+      webSocketService.off(WEBSOCKET.EVENTS.USER_JOINED, handleUserJoined);
+      webSocketService.off(WEBSOCKET.EVENTS.USER_LEFT, handleUserLeft);
+      webSocketService.off(WEBSOCKET.EVENTS.CONNECTION_STATUS, handleConnectionStatus);
+      webSocketService.disconnect();
+    };
+  }, [canvasId, token]);
+
+  // Load auto-saved data on mount (fallback for non-WebSocket scenarios)
   useEffect(() => {
     const loadAutoSavedData = async () => {
       // Only try to load canvas if canvasId exists (not for new canvases)
-      if (canvasId) {
+      if (canvasId && !webSocketService.getConnectionStatus()) {
         const res = await canvasService.getCanvasById(token, canvasId);
         if (res.success) {
           const canvasData = res.data.canvas;
@@ -546,37 +842,32 @@ const BoardProvider = ({ children }) => {
       return cleanElement;
     });
 
-    if (canvasId) {
-      const res = await canvasService.updateCanvas(token, canvasId, {
-        elements: cleanElements,
-        name: boardState.name
-      });
-
-      if (!res.success) {
-        console.error("Failed to update canvas:", res);
-      }
+    // Use WebSocket if connected, otherwise fallback to REST API
+    const isWebSocketConnected = webSocketService.getConnectionStatus();
+    
+    
+    if (isWebSocketConnected && canvasId) {
+      webSocketService.updateCanvas(cleanElements, boardState.name);
     } else {
-      await canvasService.createCanvas(token, {
-        elements: cleanElements,
-        name: boardState.name
-      });
+      if (canvasId) {
+        const res = await canvasService.updateCanvas(token, canvasId, {
+          elements: cleanElements,
+          name: boardState.name
+        });
+
+        if (!res.success) {
+          console.error("Failed to update canvas:", res);
+        }
+      } else {
+        await canvasService.createCanvas(token, {
+          elements: cleanElements,
+          name: boardState.name
+        });
+      }
     }
   }, [boardState.elements, boardState.name, canvasId, token]);
 
-  // Set up auto-save interval
-  useEffect(() => {
-    autoSaveIntervalRef.current = setInterval(() => {
-      if (boardState.elements.length > 0) {
-        autoSaveHandler();
-      }
-    }, 30000); // Auto-save every 30 seconds
 
-    return () => {
-      if (autoSaveIntervalRef.current) {
-        clearInterval(autoSaveIntervalRef.current);
-      }
-    };
-  }, [boardState.elements.length, boardState.name, autoSaveHandler]);
 
   // Auto-save when leaving the page
   useEffect(() => {
@@ -886,6 +1177,11 @@ const BoardProvider = ({ children }) => {
       type: BOARD_ACTIONS.UPDATE_NAME,
       payload: { name: newName },
     });
+    
+    // Emit name update via WebSocket immediately
+    if (webSocketService.getConnectionStatus()) {
+      webSocketService.updateCanvasName(newName);
+    }
   }, []);
 
   const shareCanvasHandler = useCallback(async (email, canEdit) => {
@@ -978,6 +1274,8 @@ const BoardProvider = ({ children }) => {
     selectedElements: boardState.selectedElements,
     selectionArea: boardState.selectionArea,
     clipboard: boardState.clipboard,
+    roomUsers: boardState.roomUsers,
+    isConnected: boardState.isConnected,
     changeToolHandler,
     boardMouseDownHandler,
     boardMouseMoveHandler,

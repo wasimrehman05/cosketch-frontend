@@ -9,6 +9,11 @@
 .header {
   padding: 1rem 1.5rem;
   display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #e5e7eb;
@@ -71,6 +76,8 @@
 
 .main {
   flex: 1;
+  margin-top: 66px;
+  margin-bottom: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -325,6 +332,10 @@
 }
 
 .footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 1rem 1.5rem;
   text-align: center;
   color: #6b7280;

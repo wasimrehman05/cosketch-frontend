@@ -9,6 +9,8 @@ const boardContext = createContext({
   selectedElements: [],
   selectionArea: null,
   clipboard: [],
+  roomUsers: [],
+  isConnected: false,
   boardMouseDownHandler: () => {},
   changeToolHandler: () => {},
   boardMouseMoveHandler: () => {},

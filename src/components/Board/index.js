@@ -5,6 +5,8 @@ import boardContext from "../../store/board-context";
 import { TOOL_ACTION_TYPES, TOOL_ITEMS, ARROW_LENGTH } from "../../constants";
 import toolboxContext from "../../store/toolbox-context";
 import { getArrowHeadsCoordinates } from "../../utils/math";
+import { getSvgPathFromStroke } from "../../utils/element";
+import getStroke from "perfect-freehand";
 
 import classes from "./index.module.css";
 
@@ -208,13 +210,35 @@ function Board() {
           break;
         case TOOL_ITEMS.BRUSH:
           context.fillStyle = element.stroke;
-          context.fill(element.path);
-          if (isSelected) {
-            context.strokeStyle = "#007bff";
-            context.lineWidth = 2;
-            context.setLineDash([5, 5]);
-            context.stroke(element.path);
-            context.setLineDash([]);
+          // Check if path is a valid Path2D object
+          if (element.path && element.path instanceof Path2D) {
+            context.fill(element.path, "nonzero");
+            if (isSelected) {
+              context.strokeStyle = "#007bff";
+              context.lineWidth = 2;
+              context.setLineDash([5, 5]);
+              context.stroke(element.path);
+              context.setLineDash([]);
+            }
+          } else {
+            // If path is not valid, try to reconstruct it from points
+            if (element.points && element.points.length > 0) {
+              try {
+                const reconstructedPath = new Path2D(
+                  getSvgPathFromStroke(getStroke(element.points, { size: element.size || 5 }))
+                );
+                context.fill(reconstructedPath, "nonzero");
+                if (isSelected) {
+                  context.strokeStyle = "#007bff";
+                  context.lineWidth = 2;
+                  context.setLineDash([5, 5]);
+                  context.stroke(reconstructedPath);
+                  context.setLineDash([]);
+                }
+              } catch (error) {
+                console.warn('Failed to reconstruct brush path:', error);
+              }
+            }
           }
           context.restore();
           break;
