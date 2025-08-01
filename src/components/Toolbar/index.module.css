@@ -1,11 +1,217 @@
 .container {
-  @apply absolute left-1/2 top-5 px-3 py-2 flex rounded border border-gray-400;
+  @apply absolute left-1/2 px-3 py-2 flex border border-gray-400;
+  justify-content: space-between;
   transform: translateX(-50%);
+  width: 100%;
+  border-radius: 0 0 5px 5px;
   box-shadow: 1px 0 10px rgba(0, 0, 0, 0.2);
+  background-color: white;
+  z-index: 100;
+}
+
+.left, .right {
+  @apply flex items-center gap-2;
+}
+
+.popup {
+  position: absolute;
+  width: 320px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  top: 100%;
+  right: 10px;
+  margin-top: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.shareBox {
+  padding: 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shareTitle {
+  @apply text-lg font-semibold mb-4;
+  color: #1f2937;
+}
+
+.shareInputGroup {
+  @apply space-y-3;
+}
+
+.shareInput {
+  @apply w-full px-3 py-2 border border-gray-300 rounded-md;
+  font-size: 14px;
+}
+
+.shareInput:focus {
+  @apply outline-none border-blue-500 ring-1 ring-blue-500;
+}
+
+.permissionGroup {
+  @apply flex items-center space-x-2;
+}
+
+.checkbox {
+  @apply w-4 h-4 text-blue-600 border-gray-300 rounded;
+}
+
+.checkboxLabel {
+  @apply text-sm font-medium;
+  color: #374151;
+}
+
+.shareButton {
+  @apply w-full px-4 py-2 bg-blue-600 text-white rounded-md font-medium;
+  font-size: 14px;
+}
+
+.shareButton:hover {
+  @apply bg-blue-700;
+}
+
+.sharedList {
+  padding: 20px;
+}
+
+.sharedTitle {
+  @apply text-sm font-semibold mb-3;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sharedItem {
+  @apply flex justify-between items-center py-2 px-0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sharedItem:last-child {
+  border-bottom: none;
+}
+
+.sharedItem {
+  @apply flex justify-between items-center py-2 px-0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sharedItem:last-child {
+  border-bottom: none;
+}
+
+.sharedUserInfo {
+  @apply flex justify-between items-center flex-1;
+}
+
+.sharedItem span {
+  @apply text-sm;
+  color: #374151;
+}
+
+.ownerBadge {
+  @apply px-2 py-1 text-xs font-medium rounded-full;
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.editorBadge {
+  @apply px-2 py-1 text-xs font-medium rounded-full;
+  background-color: #dbeafe !important;
+  color: #1e40af !important;
+}
+
+.viewerBadge {
+  @apply px-2 py-1 text-xs font-medium rounded-full;
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+.sharedActions {
+  @apply flex items-center space-x-2 ml-3;
+}
+
+.permissionSelect {
+  @apply text-xs px-2 py-1 border border-gray-300 rounded;
+  background-color: white;
+  color: #374151;
+  font-size: 11px;
+  min-width: 70px;
+}
+
+.permissionSelect:focus {
+  @apply outline-none border-blue-500 ring-1 ring-blue-500;
+}
+
+.removeButton {
+  @apply text-red-500 hover:text-red-700 text-lg font-bold;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.removeButton:hover {
+  background-color: #fef2f2;
+}
+
+.btn {
+  font-size: x-large;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  @apply text-gray-700 rounded-full;
+  background-color: #f0f0f0;
+}
+
+.projectName {
+  @apply text-xl font-bold;
+  min-width: 200px;
+  max-width: 300px;
+  color: #1f2937;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  display: block;
+  width: auto;
+  padding: 2px 10px;
+}
+
+.projectName:focus {
+  @apply outline-none;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.projectName:disabled {
+  cursor: default;
+  color: #6b7280;
+  pointer-events: none;
+}
+
+.projectName.editable {
+  cursor: text;
+}
+
+.toolItems {
+  @apply flex items-center;
 }
 
 .toolItem {
   @apply flex justify-center items-center text-xl p-3 text-black mr-5 last:mr-0 cursor-pointer;
+  transition: all 0.2s ease;
 }
 
 .toolItem:hover {
@@ -14,4 +220,82 @@
 
 .toolItem.active {
   @apply bg-blue-200 text-gray-700 rounded;
+}
+
+.toolItem.disabled {
+  @apply text-gray-400 cursor-not-allowed;
+}
+
+.toolItem.disabled:hover {
+  @apply bg-transparent text-gray-400;
+}
+
+.shareNotification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+}
+
+.shareNotification.success {
+  background-color: #10b981;
+  color: white;
+}
+
+.shareNotification.error {
+  background-color: #ef4444;
+  color: white;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Connection Status Styles */
+.connectionStatus {
+  position: relative;
+}
+
+.connected {
+  color: #10b981;
+}
+
+.disconnected {
+  color: #ef4444;
+}
+
+/* User Count Styles */
+.userCount {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 50px;
+  justify-content: center;
+  width: 70px;
+  height: 40px;
+}
+
+.userCountText {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  background-color: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
 }

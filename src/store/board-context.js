@@ -9,6 +9,8 @@ const boardContext = createContext({
   selectedElements: [],
   selectionArea: null,
   clipboard: [],
+  roomUsers: [],
+  isConnected: false,
   boardMouseDownHandler: () => {},
   changeToolHandler: () => {},
   boardMouseMoveHandler: () => {},
@@ -16,6 +18,13 @@ const boardContext = createContext({
   deleteSelected: () => {},
   copySelected: () => {},
   paste: () => {},
+  saveCanvas: () => {},
+  loadCanvas: () => {},
+  autoSave: () => {},
+  updateName: () => {},
+  shareCanvas: () => {},
+  removeShare: () => {},
+  updateSharePermission: () => {},
 });
 
 export default boardContext;

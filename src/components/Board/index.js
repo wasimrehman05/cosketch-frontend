@@ -2,8 +2,11 @@ import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 import rough from "roughjs";
 import cx from "classnames";
 import boardContext from "../../store/board-context";
-import { TOOL_ACTION_TYPES, TOOL_ITEMS } from "../../constants";
+import { TOOL_ACTION_TYPES, TOOL_ITEMS, ARROW_LENGTH } from "../../constants";
 import toolboxContext from "../../store/toolbox-context";
+import { getArrowHeadsCoordinates } from "../../utils/math";
+import { getSvgPathFromStroke } from "../../utils/element";
+import getStroke from "perfect-freehand";
 
 import classes from "./index.module.css";
 
@@ -35,6 +38,8 @@ function Board() {
     }
     
     switch (activeToolItem) {
+      case TOOL_ITEMS.NONE:
+        return ""; // Default cursor for view-only mode
       case TOOL_ITEMS.SELECTION:
         return classes.selectionCursor;
       case TOOL_ITEMS.BRUSH:
@@ -64,7 +69,24 @@ function Board() {
 
   useEffect(() => {
     function handleKeyDown(event) {
+      // Check if the user is typing in an input field
+      const activeElement = document.activeElement;
+      const isTypingInInput = activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.contentEditable === 'true'
+      );
+      
+      if (isTypingInInput) {
+        return; // Don't interfere with input field typing
+      }
+      
       if (toolActionType === TOOL_ACTION_TYPES.WRITING) {
+        return;
+      }
+      
+      // If tool is NONE, prevent all keyboard shortcuts - view only mode
+      if (activeToolItem === TOOL_ITEMS.NONE) {
         return;
       }
       
@@ -93,16 +115,28 @@ function Board() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [undo, redo, deleteSelected, copySelected, paste, toolActionType]);
+  }, [undo, redo, deleteSelected, copySelected, paste, toolActionType, activeToolItem]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
+    
+    // Ensure canvas is properly sized before rendering
+    if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    
     const context = canvas.getContext("2d");
+    
+    // Clear canvas with background first
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    
     context.save();
 
     const roughCanvas = rough.canvas(canvas);
 
-    elements.forEach((element) => {
+    elements.forEach((element, index) => {
       const isSelected = selectedElements.includes(element.id);
       
       switch (element.type) {
@@ -110,6 +144,57 @@ function Board() {
         case TOOL_ITEMS.RECTANGLE:
         case TOOL_ITEMS.CIRCLE:
         case TOOL_ITEMS.ARROW:
+          
+          // If element doesn't have roughEle (from database), create it
+          if (!element.roughEle) {
+            const gen = rough.generator();
+            let options = {
+              seed: element.id + 1,
+              fillStyle: "solid",
+            };
+            if (element.stroke) {
+              options.stroke = element.stroke;
+            }
+            if (element.fill) {
+              options.fill = element.fill;
+            }
+            if (element.size) {
+              options.strokeWidth = element.size;
+            }
+            
+            switch (element.type) {
+              case TOOL_ITEMS.LINE:
+                element.roughEle = gen.line(element.x1, element.y1, element.x2, element.y2, options);
+                break;
+              case TOOL_ITEMS.RECTANGLE:
+                element.roughEle = gen.rectangle(element.x1, element.y1, element.x2 - element.x1, element.y2 - element.y1, options);
+                break;
+              case TOOL_ITEMS.CIRCLE:
+                const cx = (element.x1 + element.x2) / 2;
+                const cy = (element.y1 + element.y2) / 2;
+                const width = element.x2 - element.x1;
+                const height = element.y2 - element.y1;
+                element.roughEle = gen.ellipse(cx, cy, width, height, options);
+                break;
+              case TOOL_ITEMS.ARROW:
+                const { x3, y3, x4, y4 } = getArrowHeadsCoordinates(
+                  element.x1, element.y1, element.x2, element.y2, ARROW_LENGTH
+                );
+                const points = [
+                  [element.x1, element.y1],
+                  [element.x2, element.y2],
+                  [x3, y3],
+                  [element.x2, element.y2],
+                  [x4, y4],
+                ];
+                element.roughEle = gen.linearPath(points, options);
+                break;
+              default:
+                console.warn(`Unrecognized element type in roughEle generation: ${element.type}`);
+                break;
+            }
+          }
+          
           roughCanvas.draw(element.roughEle);
           if (isSelected) {
             context.strokeStyle = "#007bff";
@@ -125,13 +210,35 @@ function Board() {
           break;
         case TOOL_ITEMS.BRUSH:
           context.fillStyle = element.stroke;
-          context.fill(element.path);
-          if (isSelected) {
-            context.strokeStyle = "#007bff";
-            context.lineWidth = 2;
-            context.setLineDash([5, 5]);
-            context.stroke(element.path);
-            context.setLineDash([]);
+          // Check if path is a valid Path2D object
+          if (element.path && element.path instanceof Path2D) {
+            context.fill(element.path, "nonzero");
+            if (isSelected) {
+              context.strokeStyle = "#007bff";
+              context.lineWidth = 2;
+              context.setLineDash([5, 5]);
+              context.stroke(element.path);
+              context.setLineDash([]);
+            }
+          } else {
+            // If path is not valid, try to reconstruct it from points
+            if (element.points && element.points.length > 0) {
+              try {
+                const reconstructedPath = new Path2D(
+                  getSvgPathFromStroke(getStroke(element.points, { size: element.size || 5 }))
+                );
+                context.fill(reconstructedPath, "nonzero");
+                if (isSelected) {
+                  context.strokeStyle = "#007bff";
+                  context.lineWidth = 2;
+                  context.setLineDash([5, 5]);
+                  context.stroke(reconstructedPath);
+                  context.setLineDash([]);
+                }
+              } catch (error) {
+                console.warn('Failed to reconstruct brush path:', error);
+              }
+            }
           }
           context.restore();
           break;
@@ -149,10 +256,11 @@ function Board() {
             context.strokeRect(element.x1 - 2, element.y1 - 2, textWidth + 4, textHeight + 4);
             context.setLineDash([]);
           }
-          context.restore();
           break;
         default:
-          throw new Error("Type not recognized");
+          // Handle unrecognized types gracefully
+          console.warn(`Unrecognized element type: ${element.type}`);
+          break;
       }
     });
 
