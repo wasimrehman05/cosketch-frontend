@@ -1,7 +1,9 @@
 {
   "name": "cosketch",
   "version": "2.1.0",
-  "private": true,
+  "private": false,
+  "license": "MIT",
+  "author": "Wasim Rehman",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
