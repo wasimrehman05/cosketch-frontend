@@ -334,7 +334,7 @@ const Home = () => {
             {/* Footer */}
             <footer className={styles.footer}>
                 <Typography variant="body2" className={styles.footerText}>
-                    © 2024 Whiteboard. All rights reserved.
+                    © 2025 CoSketch. All rights reserved.
                 </Typography>
             </footer>
         </div>
