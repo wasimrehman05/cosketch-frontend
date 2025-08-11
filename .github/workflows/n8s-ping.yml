@@ -1,0 +1,15 @@
+# Simulated request to our n8n-render project so that the service doesn't go down
+name: n8n render ping
+
+on:
+  schedule:
+    - cron: '* * * * *'  # Runs at midnight UTC
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  curl-website:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run cURL on Website
+        run: curl -I https://n8n-latest-i6q5.onrender.com/
