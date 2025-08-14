@@ -3,7 +3,7 @@ name: n8n render ping
 
 on:
   schedule:
-    - cron: '* * * * *'  # Runs at midnight UTC
+    - cron: '*/10 * * * *'  # Runs at every 10th minute
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
